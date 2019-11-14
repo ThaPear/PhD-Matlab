@@ -29,7 +29,7 @@ classdef Feed_Microstrip
         %      /                \
         %     /                  \
         
-        function this = Feed(slot, depth, width, length)
+        function this = Feed_Microstrip(slot, depth, width, length)
             this.depth = depth;
             this.width = width;
             this.length = length;
