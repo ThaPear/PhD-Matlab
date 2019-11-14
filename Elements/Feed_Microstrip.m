@@ -1,4 +1,4 @@
-classdef Feed
+classdef Feed_Microstrip
     properties
         depth
         width

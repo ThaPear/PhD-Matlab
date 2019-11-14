@@ -9,7 +9,7 @@ end
 dualpol = ~strcmp(class(slot), 'Slot'); %#ok<STISA>
 
 %% CST setup
-project = CST.Util.InitializeProject();
+project = CST.InitializePeriodicProject();
 solid = project.Solid();
 
 dvia = 1.3e-3;
