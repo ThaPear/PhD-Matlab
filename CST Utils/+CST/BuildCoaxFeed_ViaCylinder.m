@@ -20,9 +20,10 @@
 %                 cylinder_height, cylinder_Nvias, cylinder_angleoffset, cylinder_connector_radius)
 
 
-function BuildCoaxFeed(project, dms, wms, lms, ...
+function BuildCoaxFeed_ViaCylinder(project, dms, wms, lms, ...
                 core_radius, core_tophole_radius, core_transition_radius, ...
-                shield_radius, shield_distance, shield_startangle, shield_totalangle, shield_Nvias)
+                shield_radius, shield_distance, shield_startangle, shield_totalangle, shield_Nvias, ...
+                cylinder_height, cylinder_Nvias, cylinder_angleoffset, cylinder_connector_radius)
     % It is assumed that the WCS is correctly positioned in the center of the feeding point on the
     % slot plane.
     % TODO: Implement cylinder_Nvias
@@ -39,6 +40,10 @@ function BuildCoaxFeed(project, dms, wms, lms, ...
     thstartname = 'shield_startangle';          project.StoreParameter(thstartname, shield_startangle);
     thtotalname = 'shield_totalangle';          project.StoreParameter(thtotalname, shield_totalangle);
     nvianame = 'shield_Nvias';                  project.StoreParameter(nvianame, shield_Nvias);
+    hcylname = 'shield_cylinder_height';        project.StoreParameter(hcylname, cylinder_height*1e3);
+%     nviacylname = 'shield_cylinder_Nvias';      project.StoreParameter(nviacylname, cylinder_Nvias);
+    rcylconname = 'shield_cylinder_rconnector'; project.StoreParameter(rcylconname, cylinder_connector_radius*1e3);
+    thcylname = 'shield_cylinder_angle';        project.StoreParameter(thcylname, cylinder_angleoffset);
     % Parameters that should already exist.
     wfeedname = 'slot_feedwidth';
     lfeedname = 'slot_feedlength';
@@ -146,6 +151,85 @@ function BuildCoaxFeed(project, dms, wms, lms, ...
     transform.MultipleObjects(1);
     transform.GroupObjects(0);
     transform.Transform('Shape', 'Rotate');
+    
+    %% Create extra vias for 'cylinder'
+    % Create cylinder via
+    cylinder.Reset();
+    cylinder.Component('Feed/Xfeed');
+    cylinder.Name('Cylinder');
+    cylinder.Material('PEC');
+    cylinder.Axis('z');
+    cylinder.Xcenter(dshieldname);
+    cylinder.Ycenter(['-', wfeedname, '/2 - ', lmsname]);
+    cylinder.Zrange(['-', hbackname], ['-', hbackname, ' + ', hcylname]);
+    cylinder.Innerradius(0);
+    cylinder.Outerradius(rshieldname);
+    cylinder.Create();
+    
+    % Rotate cylinder to cylinder start position
+    transform.Reset();
+    transform.Name('Feed/Xfeed:Cylinder');
+    transform.Angle(0, 0, ['-', thstartname, ' + ', thcylname]);
+    transform.Origin('Free');
+    transform.Center(0, ['-', wfeedname, '/2 - ', lmsname], 0);
+    transform.Repetitions(1);
+    transform.MultipleObjects(0);
+    transform.GroupObjects(0);
+    transform.Transform('Shape', 'Rotate');
+    
+    % Copy cylinder via
+    transform.Reset();
+    transform.Name('Feed/Xfeed:Cylinder');
+    transform.Angle(0, 0, ['-', thtotalname, ' - 2*', thcylname]);
+    transform.Origin('Free');
+    transform.Center(0, ['-', wfeedname, '/2 - ', lmsname], 0);
+    transform.Repetitions(1);
+    transform.MultipleObjects(1);
+    transform.GroupObjects(0);
+    transform.Transform('Shape', 'Rotate');
+    
+    %% Create connector between cylinder & shield
+    % Create arc
+    arc.Reset();
+    arc.Name('Connector');
+    arc.Curve('FeedConnector');
+    arc.Orientation('CounterClockwise');
+    arc.Xcenter(0);
+    arc.Ycenter(['-', wfeedname, '/2 - ', lmsname]);
+    arc.X1(['-cos((', thstartname, ' - ', thcylname, ')*pi/180)*', dshieldname]);
+    arc.Y1(['-', wfeedname, '/2 - ', lmsname, ' - sin((', thstartname, ' - ', thcylname, ')*pi/180)*', dshieldname]);
+%     arc.X2('0.0');
+%     arc.Y2('0.0');
+    arc.Angle([thtotalname, ' + 2*', thcylname]);
+    arc.UseAngle(1);
+%     arc.Segments('0');
+    arc.Create();
+    
+    % Extrude the arc to form the connector
+    tracefromcurve.Reset();
+    tracefromcurve.Name('Connector');
+    tracefromcurve.Component('Feed/Xfeed');
+    tracefromcurve.Material('PEC');
+    tracefromcurve.Curve('FeedConnector:Connector');
+    tracefromcurve.Thickness(0);
+    tracefromcurve.Width([rshieldname, ' + ', rcylconname]);
+    tracefromcurve.RoundStart(1);
+    tracefromcurve.RoundEnd(1);
+    tracefromcurve.DeleteCurve(1);
+    tracefromcurve.GapType('2');
+    tracefromcurve.Create();
+    
+    % Move the connector to the correct depth.
+    transform.Reset();
+    transform.Name('Feed/Xfeed:Connector');
+    transform.Vector('0', '0', ['-', hbackname, ' + ', hcylname]);
+%     transform.UsePickedPoints('False');
+%     transform.InvertPickedPoints('False');
+    transform.MultipleObjects(0);
+    transform.GroupObjects(0);
+    transform.Repetitions(1);
+    transform.MultipleSelection(0);
+    transform.Transform('Shape', 'Translate');
 
     %% Create ground hole
     cylinder.Reset();

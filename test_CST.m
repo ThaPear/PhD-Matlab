@@ -32,23 +32,25 @@ clc;
 % slab.BuildCST(project);
 
 
-dms = 0.254e-3;
-wms = 0.23e-3;
-lms = 1.5e-3;
-core_radius = 0.1e-3;
-core_tophole_radius = 0.1e-3;
-core_transition_radius = 0.05e-3;
-shield_radius = 0.1e-3;
-shield_distance = 0.5e-3;
-shield_startangle = ['90 - shield_totalangle/2'];
-shield_totalangle = 100;
-shield_Nvias = 3;
-cylinder_height = 0.916e-3;
-cylinder_Nvias = [];
-cylinder_angleoffset = 30;
-cylinder_connector_radius = shield_radius + 0.05e-3;
-project = CST.Application.Active3D();
-CST.BuildCoaxFeed(project, dms, wms, lms, ...
-                core_radius, core_tophole_radius, core_transition_radius, ...
-                shield_radius, shield_distance, shield_startangle, shield_totalangle, shield_Nvias, ...
-                cylinder_height, cylinder_Nvias, cylinder_angleoffset, cylinder_connector_radius)
+% dms = 0.254e-3;
+% wms = 0.23e-3;
+% lms = 1.5e-3;
+% core_radius = 0.1e-3;
+% core_tophole_radius = 0.1e-3;
+% core_transition_radius = 0.05e-3;
+% shield_radius = 0.1e-3;
+% shield_distance = 0.5e-3;
+% shield_startangle = ['90 - shield_totalangle/2'];
+% shield_totalangle = 100;
+% shield_Nvias = 3;
+% cylinder_height = 0.916e-3;
+% cylinder_Nvias = [];
+% cylinder_angleoffset = 30;
+% cylinder_connector_radius = shield_radius + 0.05e-3;
+% project = CST.Application.Active3D();
+% CST.BuildCoaxFeed(project, dms, wms, lms, ...
+%                 core_radius, core_tophole_radius, core_transition_radius, ...
+%                 shield_radius, shield_distance, shield_startangle, shield_totalangle, shield_Nvias, ...
+%                 cylinder_height, cylinder_Nvias, cylinder_angleoffset, cylinder_connector_radius)
+
+[f, parameters, data] = CST.LoadData('Temp/mat.mat');
