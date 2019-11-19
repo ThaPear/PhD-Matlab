@@ -84,7 +84,7 @@ feed_shield_Nvias = [cellfun(@str2double, parameters.feed_shield_Nvias)];
 feed_shield_distance = [cellfun(@str2double, parameters.feed_shield_distance)];
 
 viadistance = 2 .* feed_shield_distance .* sind(feed_shield_totalangle ./ feed_shield_Nvias ./ 2);
-Zs(viadistance < 0.2) = nan;
+Zs(viadistance < 0.3) = nan;
 
 for(n = 2:6)
     runIDs = [cellfun(@str2double, parameters.x3DRunID)];

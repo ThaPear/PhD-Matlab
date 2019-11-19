@@ -45,6 +45,7 @@ Materials.BuildCST(project);
 if(~dualpol)
     solid.Delete('Slot:Walls');
 	project.StoreParameter('slot_s0', 0);
+	project.StoreParameter('adl_s0', -0.5);
     project.Rebuild();
 end
 

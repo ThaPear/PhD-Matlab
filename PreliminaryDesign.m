@@ -37,7 +37,7 @@ global hcut;
 hcut = 0;
 % for(hcut = (0:0.02:0.2)*1e-3)
 % for(wslot = (0.5:0.5:3)*1e-3)
-slab = ChebyshevADS(p, gamma, z1, z2, N, f0match, f0design, 0);
+slab = ChebyshevADS(p, gamma, z1, z2, N, f0match, f0design, 1);
 % Transmission line models for up and down stratifications.
 % if(baseheight - hcut < 0)
 %     continue;
@@ -49,12 +49,13 @@ tlinedown = ShortedLine(erback*0.7, hback, erback);
 % The slot.
 % slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown);
 slot = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot, tlineup, tlinedown);
+slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown);
 % return
 
 fprintf('hback = %g, wslot = %g, dslot = %g, z1 = %g, zfeed = %g, f0design = %g, f0match = %g\n', ...
     hback*1e3, wslot*1e3, dslot*1e3, z1, zfeed, f0design/1e9, f0match/1e9);
 
-PreliminaryDesign_SimADL;
+% PreliminaryDesign_SimADL;
 % PreliminaryDesign_SimSlot;
-% PreliminaryDesign_SimCST;
+PreliminaryDesign_SimCST;
 % end

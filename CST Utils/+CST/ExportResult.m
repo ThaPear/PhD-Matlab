@@ -10,6 +10,7 @@ function ExportResult(project, resultname, exportfilename)
         warning('Parameter exportfilename contains ''.'', do not specify extension.');
     end
     
+    % Ensure that the correct slash is used in specifying the Navigation Tree address.
     if(contains(resultname, '/'))
         warning('Result names must be specified with ''\'', not with ''/''. Autocorrecting.');
         resultname = strrep(resultname, '/', '\');
@@ -31,15 +32,16 @@ function ExportResult(project, resultname, exportfilename)
     if(strcmp(resultsplit{end}, 'S-Parameters') || strcmp(resultsplit{end-1}, 'S-Parameters'))
         % Loop over parametric results.
         ret = project.ResultNavigatorRequest('set selection', '0');
-        
+        th = project.RestoreParameter('aa_theta');
+        ph = project.RestoreParameter('aa_phi');
         touchstone = project.Touchstone();
         touchstone.Reset();
         touchstone.FileName(exportfilename);
-        touchstone.Impedance(50);
+        touchstone.Impedance(120*pi);
         touchstone.FrequencyRange('Full');
-        touchstone.Renormalize(1);
-        touchstone.UseARResults(0);
-        touchstone.SetNSamples(100);
+        touchstone.Renormalize(0);
+%         touchstone.UseARResults(0);
+%         touchstone.SetNSamples(100);
         touchstone.Write();
         return;
     end

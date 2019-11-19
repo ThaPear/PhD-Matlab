@@ -1,17 +1,25 @@
-function [eps, mu] = GetEpsilonMu(tline, f)
+function [er, mu] = GetEpsilonMu(tline, f)
     project = CST.InitializeUnitCellProject();
     tline.BuildCST(project);
     
+    % 
+    th0 = 0 * pi/180;
+    th = 10 * pi/180;
+    ph = 0 * pi/180;
+    
+    %% Simulate only the given frequency.
     if(f >= 1e9)
-        f = f / 1e9;
+        fCST = f / 1e9;
+    else
+        fCST = f;
     end
     fdsolver = project.FDSolver();
     fdsolver.ResetSampleIntervals('all');
-    fdsolver.AddSampleInterval(f, '', 1, 'Single', 1);
+    fdsolver.AddSampleInterval(fCST, '', 1, 'Single', 1);
     
-    project.StoreParameter('fmesh', f);
-    project.StoreParameter('fmin', f-1);
-    project.StoreParameter('fmax', f+1);
+    project.StoreParameter('fmesh', fCST);
+    project.StoreParameter('fmin', fCST-1);
+    project.StoreParameter('fmax', fCST+1);
     
     floquetport = project.FloquetPort();
     floquetport.StartBulkMode();
@@ -22,29 +30,67 @@ function [eps, mu] = GetEpsilonMu(tline, f)
     floquetport.EndBulkMode();
 %     project.StoreParameter('openboundary_distance', [CST.Defaults.OpenBoundaryDistance, '+', num2str(tline.elements{end}.L*1e3, '%.15g')]);
 
-    project.Rebuild();
-    success = project.Rebuild();
-    if(~success)
+
+    %% Simulate for broadside incidence.
+    project.StoreParameter('aa_theta', th0 * 180/pi);
+    if(~project.Rebuild())
         fprintf('%s: Project rebuild failed.\n', mfilename);
         return;
     end
+    if(~fdsolver.Start())
+        fprintf('%s: Simulation failed.\n', mfilename);
+        return;
+    end
     
-    parametersweep = project.ParameterSweep();
-    parametersweep.StartBulkMode();
-    parametersweep.SetSimulationType('Frequency');
-    parametersweep.AddSequence('Sequence 1');
-    parametersweep.AddParameter_ArbitraryPoints('Sequence 1', 'aa_theta', '0;10');
-    parametersweep.AddParameter_ArbitraryPoints('Sequence 1', 'aa_phi', '0');
-    parametersweep.EndBulkMode();
-    parametersweep.Start();
+    filename = 'Temp/S0';
+    CST.ExportResult(project, '1D Results\S-Parameters', filename);
+    [fs, parameters, Ste0, Stm0] = CST.LoadData([filename, '.s4p']);
+
+    %% Simulate for 10-degree incidence.
+    project.StoreParameter('aa_theta', th * 180/pi);
+    if(~project.Rebuild())
+        fprintf('%s: Project rebuild failed.\n', mfilename);
+        return;
+    end
+    if(~fdsolver.Start())
+        fprintf('%s: Simulation failed.\n', mfilename);
+        return;
+    end
     
-%     success = fdsolver.Start();
-%     if(~success)
-%         fprintf('%s: Simulation failed.\n', mfilename);
-%         return;
-%     end
+    filename = 'Temp/S';
+    CST.ExportResult(project, '1D Results\S-Parameters', filename);
+    [fs, parameters, Ste, Stm] = CST.LoadData([filename, '.s4p']);
     
-%     filename = 'Temp/testS.s4p';
-%     CST.ExportResult(project, '1D Results/S-Parameters', filename);
-%     [fs, parameters, S] = CST.LoadData(filename);
+    d = tline.GetHeight();
+    [er, mu] = EpsilonMu(f, Ste, Stm, Ste0, Stm0, d, th0, th, ph);
+    
+    project.ResetAll(); project.Quit();
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

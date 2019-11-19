@@ -4,7 +4,7 @@ function [f, parameters, out] = Touchstone(filename)
             disp(['File "', filename, '" does not exist']);
             f = [];
             parameters = [];
-            for(i = 1:nargout)
+            for(i = 1:nargout-2)
                 out{i} = [];
             end
             return;

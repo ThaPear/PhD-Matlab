@@ -27,7 +27,7 @@ function [f, parameters, varargout] = LoadData(filename)
     if(iscell(varargout) && nargout ~= length(varargout)+2)
         spl = strsplit(filename, '.');
         error(['Invalid number of output arguments for file type ''', spl{end}, ''', ', num2str(length(varargout)+2), ' expected.']);
-    else
+    elseif(~iscell(varargout))
         varargout = {varargout};
     end
 end
