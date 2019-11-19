@@ -9,6 +9,7 @@ function [f, parameters, values] = Txt(filename)
     reading = 0;
     % Format 1 is a+j*b, format 2 is a*exp(j*b)
     format = 1;
+    firstline = 1;
     
     f = [];
     while(1)
@@ -17,6 +18,11 @@ function [f, parameters, values] = Txt(filename)
             break;
         end
         if(line(1) == '#' || isnan(str2double(line(1:4))))
+            if(firstline && line(1) ~= '#')
+                % The first line does not start with a '#', so this is an automatically exported
+                % file.
+                [f, parameters, values] = ReadAutomaticExport(fileID);
+            end
             if(reading)
                 reading = 0;
                 set = set + 1;
@@ -54,6 +60,8 @@ function [f, parameters, values] = Txt(filename)
                 end
             end
         end
+        % We're no longer on the first line.
+        firstline = 0;
     end
     fclose(fileID);
 end
@@ -62,11 +70,81 @@ function parameters = GetParameters(line)
     % Cut off all except for the parameters.
     line = line(16:end-1);
     
-    % Ensure each parameter will be called 'p_parametername' to avoid
-    % conflicts with existing variables in this scope.
-    parameters = struct();
+    parameters = [];
+    % Rename each parameter to 'params.parametername' to load them into a struct.
     line = strrep(line, '; ', '; parameters.');
     line = ['parameters.', line, ';'];
     
     eval(line);
 end
+
+function [f, parameters, values] = ReadAutomaticExport(fileID)
+    % Restart the file.
+    frewind(fileID);
+    
+    i = 1;
+    f = [];
+    values = [];
+    while(1)
+        % Skip the header.
+        line = fgetl(fileID);
+        while(line(1) ~= -1 && (isempty(line) || ~strcmp(line(1:10), '----------')))
+            line = fgetl(fileID);
+        end
+        if(line == -1); break; end
+        
+        % Read the data from the file.
+        j = 1;
+        line = fgetl(fileID);
+        while(~isempty(line))
+            % Split line into its separate numbers.
+            split = strsplit(line);
+            % Delete empty entries.
+            split([cellfun(@isempty, split)]) = [];
+            
+            dat = str2double(split);
+            
+            f(i, j) = dat(1);
+            values(i, j) = dat(2);
+            if(length(dat) > 2)
+                error('Unknown number of columns in export.');
+            end
+            
+            j = j + 1;
+            line = fgetl(fileID);
+        end
+        i = i + 1;
+    end
+    
+    % Parameters are not exported in the automatic export.
+    parameters = [];
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

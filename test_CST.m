@@ -1,5 +1,5 @@
 close all;
-clear;
+% clear;
 SetupPath;
 clc;
 
@@ -53,4 +53,54 @@ clc;
 %                 shield_radius, shield_distance, shield_startangle, shield_totalangle, shield_Nvias, ...
 %                 cylinder_height, cylinder_Nvias, cylinder_angleoffset, cylinder_connector_radius)
 
-[f, parameters, data] = CST.LoadData('Temp/mat.mat');
+% [f, parameters, data] = CST.LoadData('Temp/mat.mat');
+
+%%
+% project = CST.Application.Active3D();
+% 
+% resultname = '1D Results\Port Information\Line Impedance\1(1)';
+% 
+% basefilename = 'Temp/coax_impedancelookup';
+% exportfileextension = '.txt';
+% 
+% Zs = zeros(1, 3300);
+% success = project.SelectTreeItem(resultname);
+% for(i = 1:25:3300)
+%     ret = project.ResultNavigatorRequest('set selection', num2str(i:i+24));
+%     asciiexport = project.ASCIIExport();
+%     exportfilename = [basefilename, '_', num2str(i, '%04i'), '-', num2str(i+24, '%04i')];
+%     exportfilename = GetFullPath(exportfilename);
+%     asciiexport.Reset();
+%     asciiexport.FileName([exportfilename, exportfileextension]);
+%     asciiexport.Execute();
+%     [f, parameters, values] = CST.LoadData([exportfilename, exportfileextension]);
+%     Zs(i:i+24) = values.';
+% end
+
+%%
+parameters = readtable('Temp/result_navigator.csv', 'Delimiter', ';');
+feed_shield_totalangle = [cellfun(@str2double, parameters.feed_shield_totalangle)];
+feed_shield_Nvias = [cellfun(@str2double, parameters.feed_shield_Nvias)];
+feed_shield_distance = [cellfun(@str2double, parameters.feed_shield_distance)];
+
+viadistance = 2 .* feed_shield_distance .* sind(feed_shield_totalangle ./ feed_shield_Nvias ./ 2);
+Zs(viadistance < 0.2) = nan;
+
+for(n = 2:6)
+    runIDs = [cellfun(@str2double, parameters.x3DRunID)];
+    runIDs = runIDs(feed_shield_Nvias == n);
+
+    Zsmat = [];
+    xs = [];
+    ys = [];
+    for(i = runIDs.')
+        xs(feed_shield_totalangle(i)/5-3) = feed_shield_totalangle(i);
+        ys(floor(feed_shield_distance(i)*20)-8) = feed_shield_distance(i);
+        Zsmat(feed_shield_totalangle(i)/5-3, floor(feed_shield_distance(i)*20)-8) = Zs(i);
+    end
+    figureex; hold off; imagesc(ys, xs, Zsmat);
+    title(['Nvias = ', num2str(n)]);
+    colorbar;
+    ax = gca;    map = ax.Colormap;    map(1,:) = 1;    ax.Colormap = map; % Make 0 (or nan) white.
+    alignplot(gcf, 4, 2, n-1, [], 2);
+end

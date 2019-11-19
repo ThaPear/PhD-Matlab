@@ -6,3 +6,10 @@ erdes = 8;
 ads = DesignADS(f0, p, L, erdes);
 
 CST.GetEpsilonMu(ads, f0);
+%%
+project = CST.Application.Active3D();
+filename = 'Temp/testS';
+CST.ExportResult(project, '1D Results\S-Parameters', filename);
+[fs, parameters, Ste, Stm] = CST.LoadData([filename, '.s4p']);
+    
+    

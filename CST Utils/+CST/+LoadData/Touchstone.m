@@ -3,6 +3,7 @@ function [f, parameters, out] = Touchstone(filename)
         case 0 % Doesn't exist
             disp(['File "', filename, '" does not exist']);
             f = [];
+            parameters = [];
             for(i = 1:nargout)
                 out{i} = [];
             end

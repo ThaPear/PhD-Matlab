@@ -173,6 +173,17 @@ function hFig = figureex(iFig)
         set(jActionItem, 'ActionPerformedCallback', @(~, ~) RemoveLine(hFig, idxstr));
     end
     
+    %% Restore the pre-2018 figure toolbar.
+    % From https://nl.mathworks.com/matlabcentral/answers/419036-what-happened-to-the-figure-toolbar-in-r2018b-why-is-it-an-axes-toolbar-how-can-i-put-the-buttons
+    % To do it by default:
+    % set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
+    % set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'))
+    ver = version('-release');
+    if(str2double(ver(1:4)) >= 2018)
+        addToolbarExplorationButtons(gcf); % Adds buttons to figure toolbar
+        ax = gca;
+        ax.Toolbar.Visible = 'off'; % Turns off the axes toolbar
+    end
     %% Show the figure
     hFig.Visible = 'on';
 end

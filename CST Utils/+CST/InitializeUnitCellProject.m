@@ -11,10 +11,10 @@ function project = InitializeUnitCellProject()
     floquetport = project.FloquetPort();
     floquetport.StartBulkMode();
     floquetport.Port('Zmin');
-    floquetport.SetDistanceToReferencePlane('openboundary_distance');
-    floquetport.EndBulkMode();
-    floquetport.StartBulkMode();
+    floquetport.SetDistanceToReferencePlane('-openboundary_distance');
+    floquetport.SetNumberOfModesConsidered(2);
     floquetport.Port('Zmax');
-    floquetport.SetDistanceToReferencePlane('openboundary_distance');
+    floquetport.SetDistanceToReferencePlane('-openboundary_distance');
+    floquetport.SetNumberOfModesConsidered(2);
     floquetport.EndBulkMode();
 end

@@ -21,3 +21,7 @@ clear hParallelpool;
 
 % Pause is error occurs.
 dbstop if error;
+
+% Disable new-style zoom stuff.
+set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig));
+set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'));
