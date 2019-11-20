@@ -10,6 +10,9 @@ function [er, mu] = GetEpsilonMu(tline, f)
     th = 10 * pi/180;
     ph = 0 * pi/180;
     
+    er = [];
+    mu = [];
+    
     %% Simulate only the given frequency.
     if(f >= 1e9)
         fCST = f / 1e9;

@@ -1,7 +1,7 @@
 function [f, parameters, out] = Touchstone(filename)
     switch(exist(filename, 'file'))
         case 0 % Doesn't exist
-            disp(['File "', filename, '" does not exist']);
+            fprintf('File ''%s'' does not exist.\n', filename);
             f = [];
             parameters = [];
             for(i = 1:nargout-2)
@@ -9,9 +9,9 @@ function [f, parameters, out] = Touchstone(filename)
             end
             return;
         case 2 % It's a file
-            disp(['Reading Touchstone file ''', filename, '''.']);
+%             fprintf('Reading Touchstone file ''%s''.\n', filename);
         otherwise
-            error(['Given filename ("', filename, '") refers to unknown type']);
+            error('Given filename ''%s'' refers to unknown type.\n', filename);
     end
     
     if(filename(end-2) == 's')
