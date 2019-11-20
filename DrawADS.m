@@ -1,6 +1,6 @@
 function [h, s] = DrawADS(ads, f0, h, s, hFig)
     if(nargin < 2)
-        disp('f0 not given in DrawADS');
+        dispex('f0 not given in DrawADS.\n');
         return;
     end
     metalheight = 3e-5;
@@ -51,7 +51,7 @@ function [h, s] = DrawADS(ads, f0, h, s, hFig)
         end
         return;
     end
-    disp('Drawing ADS');
+    dispex('Drawing ADS\n');
     
     p = ads.p;
     % Normalize to p.
@@ -88,7 +88,7 @@ function [h, s] = DrawADS(ads, f0, h, s, hFig)
     
     h = h + ds(1);
     for(n = 1:N)
-        disp(['Layer ', num2str(n), '/' num2str(N)]);
+        dispex('Layer %i/%i.\n', n, N)
         s = mod(s+1/2, 1)-1/2; % Ensure -1/2 < s < 1/2
         if(ws(n) < 0)
             breakpoint;

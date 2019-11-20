@@ -214,7 +214,7 @@ classdef ADS < TLine
             str = [str, VarStr('ws', this.ws, lambda0, lambda, delim), delim];
             str = [str, VarStr('h', this.GetHeight(), lambda0, lambda, delim), delim];
             if(nargout == 0)
-                fprintf(str);
+                dispex(str);
             end
             function str = VarStr(name, values, lambda0, lambda, delim)
                 if(all(values == values(1)))

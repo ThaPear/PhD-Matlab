@@ -37,5 +37,6 @@ function XPolCancellation(project, port1, port2, frequency, theta, phi)
     p2_hor = str2double(p2_hor{:});
     p2_horphase = str2double(p2_horphase{:});
 
-    fprintf('Amplitude: %.15g / %.15g = \n%.15g\nPhase: 180 - (%.15g - %.15g) = \n%.15g\n', p2_hor, p1_hor, p2_hor / p1_hor, p2_horphase, p1_horphase, mod(180-(p2_horphase - p1_horphase), 360));
+    dispex('Amplitude: %.15g / %.15g = \n%.15g\nPhase: 180 - (%.15g - %.15g) = \n%.15g\n', ...
+        p2_hor, p1_hor, p2_hor / p1_hor, p2_horphase, p1_horphase, mod(180-(p2_horphase - p1_horphase), 360));
 end

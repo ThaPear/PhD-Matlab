@@ -25,7 +25,7 @@ classdef StagedADS < TLine
             
             adss = cell(1, NADS);
             for(rep = 1:2)
-%                 disp(['Repetition ', num2str(rep)]);
+%                 dispex('Repetition %i.\n', rep);
                 for(n = 1:NADS)
                     er = ers(n);
                     h = heights(n);
@@ -47,7 +47,7 @@ classdef StagedADS < TLine
                         adss{n} = Line(ers(n), h);
                     end
                     
-%                     disp(['Designed layer ', num2str(n), ' in ', num2str(dt), 's, used ', num2str((length(elements{n}.elements)-1)/2), ' layers.']);
+%                     dispex('Designed layer %i in %fs, used %i layers.\n', n, dt, (length(adss{n}.elements)-1)/2);
                 end
             end
             
@@ -65,7 +65,7 @@ classdef StagedADS < TLine
             end
             
             dt = toc(tc);
-            fprintf('Designed %i-stage %i-layer %.2fmm %s in %.3fs.\n', ...
+            dispex('Designed %i-stage %i-layer %.2fmm %s in %.3fs.\n', ...
                 NADS, nlayers, this.GetHeight()*1e3, class(this), dt);
         end
         function this = ApplyNeighbours(this)

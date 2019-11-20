@@ -1,7 +1,7 @@
 % Check if CST is desired.
 ok = questdlg('Build CST project?','','Yes','No','Yes');
 if(~strcmp(ok, 'Yes'))
-    fprintf('Cancelled building of CST project.\n');
+    dispex('Cancelled building of CST project.\n');
     return;
 end
 

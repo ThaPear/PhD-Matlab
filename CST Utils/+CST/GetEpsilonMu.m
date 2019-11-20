@@ -1,5 +1,8 @@
 function [er, mu] = GetEpsilonMu(tline, f)
     project = CST.InitializeUnitCellProject();
+    
+    project.StoreParameter('dx', 4.4);
+    project.StoreParameter('dy', 'dx');
     tline.BuildCST(project);
     
     % 
@@ -34,11 +37,11 @@ function [er, mu] = GetEpsilonMu(tline, f)
     %% Simulate for broadside incidence.
     project.StoreParameter('aa_theta', th0 * 180/pi);
     if(~project.Rebuild())
-        fprintf('%s: Project rebuild failed.\n', mfilename);
+        dispex('Project rebuild failed.\n');
         return;
     end
     if(~fdsolver.Start())
-        fprintf('%s: Simulation failed.\n', mfilename);
+        dispex('Simulation failed.\n');
         return;
     end
     
@@ -49,11 +52,11 @@ function [er, mu] = GetEpsilonMu(tline, f)
     %% Simulate for 10-degree incidence.
     project.StoreParameter('aa_theta', th * 180/pi);
     if(~project.Rebuild())
-        fprintf('%s: Project rebuild failed.\n', mfilename);
+        dispex('Project rebuild failed.\n');
         return;
     end
     if(~fdsolver.Start())
-        fprintf('%s: Simulation failed.\n', mfilename);
+        fprintf('Simulation failed.\n');
         return;
     end
     
@@ -64,7 +67,7 @@ function [er, mu] = GetEpsilonMu(tline, f)
     d = tline.GetHeight();
     [er, mu] = EpsilonMu(f, Ste, Stm, Ste0, Stm0, d, th0, th, ph);
     
-    project.ResetAll(); project.Quit();
+%     project.ResetAll(); project.Quit();
 end
 
 

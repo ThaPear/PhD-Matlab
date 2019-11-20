@@ -1,16 +1,16 @@
 function [f, varargout] = ReadTouchstone(filename)
     switch(exist(filename, 'file'))
         case 0 % Doesn't exist
-            disp(['File "', filename, '" does not exist']);
+            dispex('File "%s" does not exist.\n', filename);
             f = [];
             for(i = 1:nargout)
                 varargout{i} = [];
             end
             return;
         case 2 % It's a file
-            disp(['Reading Touchstone file ''', filename, '''.']);
+            dispex('Reading Touchstone file ''%s''.', filename);
         otherwise
-            error(['Given filename ("', filename, '") refers to unknown type']);
+            error('Given filename ("%s") refers to unknown type', filename);
     end
     
     if(filename(end-2) == 's')
@@ -21,7 +21,7 @@ function [f, varargout] = ReadTouchstone(filename)
     
     if(nargout ~= length(varargout)+1)
         spl = strsplit(filename, '.');
-        error(['Invalid number of output arguments for file type ''', spl{end}, ''', ', num2str(length(varargout)+1), ' expected.']);
+        error('Invalid number of output arguments for file type ''%s'', %i expected.', spl{end}, length(varargout)+1);
     end
 end
 

@@ -52,7 +52,7 @@ for(iangle = 1:length(ths))
     % Calculate input impedance.
     tc = tic;
     Zas = slot.GetInputImpedance(fs, th, ph);
-    fprintf('Calculated input impedance in %.3fs.\n', toc(tc));
+    dispex('Calculated input impedance in %.3fs.\n', toc(tc));
     ZasC = Zas + Zcap; % With series capacitance.
     
     % Calculate reflection coefficient.
@@ -61,7 +61,7 @@ for(iangle = 1:length(ths))
     
     % Output worst values.
     ind = find(20*log10(abs(Gamma)) == max(20*log10(abs(Gamma(fs >= 13e9 & fs <= 31e9)))));
-    fprintf('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
+    dispex('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
         th*180/pi, ph*180/pi, 20*log10(abs(Gamma(ind))), fs(ind)/1e9, real(ZasC(ind)), imag(ZasC(ind)));
     
     % Plot results.

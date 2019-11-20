@@ -41,7 +41,7 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
     s = p/2;
     
     while(N < Nmax)
-%         disp(['N = ', num2str(N)]);
+%         dispex('N = %i\n', N);
         d = (L/N);
         ds = [d/2, repmat(d, 1, N-1), d/2];
         ss = repmat(s, 1, max(1, N));
@@ -113,8 +113,8 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
 %             else
                 w = P(1, end);
 %             end
-%             disp(['final w = ', num2str(w/p), 'p = ', num2str(w*1e3), 'mm']);
-
+%             dispex('final w = %f, p = %fmm\n', w/p, w*1e3);
+    
 %             figureex; plot(wvals/p, ers, [wmin/p, wmax/p], [erdes, erdes]);
 %             xlabel('w / p');
 %             ylabel('\varepsilon_r');

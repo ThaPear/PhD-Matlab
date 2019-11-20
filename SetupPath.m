@@ -1,5 +1,6 @@
 % Set up the path.
 if(~exist('IsPathSetup', 'file') || ~IsPathSetup())
+    disp('Setting up path.');
     restoredefaultpath;
     matlabrc;
     addpath(                        ...
@@ -11,7 +12,6 @@ if(~exist('IsPathSetup', 'file') || ~IsPathSetup())
         'Matlab Utils',             ...
         'Matlab Utils/Downloaded',  ...
         '');
-    disp('Setting up path.');
 end
 
 % Parallel pool.

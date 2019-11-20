@@ -35,7 +35,7 @@ classdef TaperedLine < TLine
             for(i = 1:length(this.elements))
                 element = this.elements{i};
                 
-                fprintf('MakeHomogeneousLayer("Layer X", %.10f, p, h0, %.10f*l0, Nx, Ny)\n', ...
+                dispex('MakeHomogeneousLayer("Layer X", %.10f, p, h0, %.10f*l0, Nx, Ny)\n', ...
                     element.er, element.L/lambda0);
             end
         end

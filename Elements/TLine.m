@@ -29,7 +29,7 @@ classdef TLine < Element
                 if(max(isnan(ABCD.A(:))) || max(isnan(ABCD.B(:))) || max(isnan(ABCD.C(:))) || max(isnan(ABCD.D(:))))
                     breakpoint;
                 end
-%                 disp(class(element));
+%                 dispex('%s\n', class(element));
 %                 ABCD
             end
         end
