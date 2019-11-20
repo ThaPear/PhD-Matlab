@@ -3,7 +3,7 @@
 %#ok<*REPMAT>
 
 % Design ADS with given unit cell size to have given desired epsilon.
-function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
+function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, extraspaceinfirstlayer)
     if(nargin < 5)
         prevlayer = [];
     end
@@ -18,15 +18,17 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
     end
     wvals = linspace(wmin, wmax, Nw);
     
+    if(nargin < 7)
+        extraspaceinfirstlayer = 0;%isempty(prevlayer);
+    end
+    
     Nmin = 1;
     Nmin = 2;
 %     Nmin = 3;
     Nmax = 10;
     N = Nmin;
     
-    firstlayermultiplier = 2;
-    
-    if(erdes > 18)
+    if(erdes > 18 || erdes > 12 && erdes < 12.2)
         N = 2;
     end
     
@@ -51,10 +53,9 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
         parfor(wi = 1:Nw)
             w = wvals(wi);
             ws = repmat(w, 1, N);
-            if(isempty(prevlayer))
-                ws(1) = ws(1) * firstlayermultiplier;
-            end
-
+            % Add extra space between patches in the first layer.
+            ws(1) = ws(1) * (1 + extraspaceinfirstlayer);
+            
             slab = ADS(p, ds, ss, ws, erhosts);
             % Introduce other layers.
 %             slab = IntroduceOtherLayers(slab, prevlayer, nextlayer);
@@ -90,9 +91,8 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
                     [~, wi] = min(ers);
                     w = wvals(wi);
                     ws = repmat(w, 1, N);
-                    if(isempty(prevlayer))
-                        ws(1) = ws(1) * firstlayermultiplier;
-                    end
+                    % Add extra space between patches in the first layer.
+                    ws(1) = ws(1) * (1 + extraspaceinfirstlayer);
                     ads = ADS(p, ds, ss, ws, erhosts);
                     ads = ads.SetNeighbours(prevlayer, nextlayer);
                     break;
@@ -101,8 +101,8 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
                        '\n\tIncrease dz (%.3gmm = %.3g%ceff)'], ...
                        erdes, min(ers), (L/N)*1e3, (L/N)/(lambda0/sqrt(erdes)), 955);
             end
-        % The desired er is in-range.
         else
+            % The desired er is in-range.
             
             P = InterX([wmin, wmax;     ...
                         erdes, erdes],  ...
@@ -113,17 +113,16 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, hgap)
 %             else
                 w = P(1, end);
 %             end
-%             dispex('final w = %f, p = %fmm\n', w/p, w*1e3);
-    
+
 %             figureex; plot(wvals/p, ers, [wmin/p, wmax/p], [erdes, erdes]);
 %             xlabel('w / p');
 %             ylabel('\varepsilon_r');
 %             plot(w/p, erdes, 'ro');
 
+%             dispex('final w = %f, p = %fmm\n', w/p, w*1e3);
             ws = repmat(w, 1, N);
-            if(isempty(prevlayer))
-                ws(1) = ws(1) * firstlayermultiplier;
-            end
+            % Add extra space between patches in the first layer.
+            ws(1) = ws(1) * (1 + extraspaceinfirstlayer);
             ads = ADS(p, ds, ss, ws, erhosts);
             ads = ads.SetNeighbours(prevlayer, nextlayer);
             break;

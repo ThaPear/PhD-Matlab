@@ -3,7 +3,7 @@
 %#ok<*REPMAT>
 
 % Design ADS with given unit cell size to have given desired epsilon.
-function ads = DesignADS_Real(f0, p, L, erdes, prevlayer, nextlayer, hgap)
+function ads = DesignADS_Real(f0, p, L, erdes, prevlayer, nextlayer, extraspaceinfirstlayer)
     if(nargin < 5)
         prevlayer = [];
     end
@@ -17,6 +17,10 @@ function ads = DesignADS_Real(f0, p, L, erdes, prevlayer, nextlayer, hgap)
         wmin = 0.2*p;
     end
     wvals = linspace(wmin, wmax, Nw);
+    
+    if(nargin < 7)
+        extraspaceinfirstlayer = 0;%isempty(prevlayer);
+    end
     
     Nmin = 1;
     Nmin = 2;
@@ -48,9 +52,9 @@ function ads = DesignADS_Real(f0, p, L, erdes, prevlayer, nextlayer, hgap)
         parfor(wi = 1:Nw)
             w = wvals(wi);
             ws = repmat(w, 1, N);
-            if(isempty(prevlayer))
-                ws(1) = ws(1) * 2;
-            end
+            % Add extra space between patches in the first layer.
+            ws(1) = ws(1) * (1 + extraspaceinfirstlayer);
+            
             slab = ADS_Real(p, ds, ss, ws);
             % Introduce other layers.
 %             slab = IntroduceOtherLayers(slab, prevlayer, nextlayer);
@@ -86,9 +90,8 @@ function ads = DesignADS_Real(f0, p, L, erdes, prevlayer, nextlayer, hgap)
                     [~, wi] = min(ers);
                     w = wvals(wi);
                     ws = repmat(w, 1, N);
-                    if(isempty(prevlayer))
-                        ws(1) = ws(1) * 2;
-                    end
+                    % Add extra space between patches in the first layer.
+                    ws(1) = ws(1) * (1 + extraspaceinfirstlayer);
                     ads = ADS_Real(p, ds, ss, ws);
                     ads = ads.SetNeighbours(prevlayer, nextlayer);
                     break;
@@ -100,15 +103,12 @@ function ads = DesignADS_Real(f0, p, L, erdes, prevlayer, nextlayer, hgap)
         else
             % The desired er is in-range.
             
-            
-            
-            
             P = InterX([wmin, wmax;     ...
                         erdes, erdes],  ...
                        [wvals;          ...
                         ers]);
 %             if(size(P, 2) == 2)
-%                 w = P(1, end);
+%                 w = P(1, 1);
 %             else
                 w = P(1, end);
 %             end
@@ -120,9 +120,8 @@ function ads = DesignADS_Real(f0, p, L, erdes, prevlayer, nextlayer, hgap)
 
 %             dispex('final w = %f, p = %fmm\n', w/p, w*1e3);
             ws = repmat(w, 1, N);
-            if(isempty(prevlayer))
-                ws(1) = ws(1) * 2;
-            end
+            % Add extra space between patches in the first layer.
+            ws(1) = ws(1) * (1 + extraspaceinfirstlayer);
             ads = ADS_Real(p, ds, ss, ws);
             ads = ads.SetNeighbours(prevlayer, nextlayer);
             break;

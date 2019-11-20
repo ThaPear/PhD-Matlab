@@ -329,7 +329,7 @@ function RemoveLine(hFig, index)
                 for(i = 1:length(ax.Children))
                     delete(ax.Children(1));
                 end
-            elseif(contains(index, 'end'))
+            elseif(ischar(index) && contains(index, 'end'))
                 if(length(index) > 3)
                     idx = str2double(index(4:end));
                     delete(ax.Children(end+idx));

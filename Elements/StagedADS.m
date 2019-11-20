@@ -42,7 +42,8 @@ classdef StagedADS < TLine
                                 nextlayer = adss{n+1};
                             end
                         end
-                        adss{n} = DesignADS(f0, p, h, er, prevlayer, nextlayer);
+                        doublespaceinfirstlayer = isempty(prevlayer);
+                        adss{n} = DesignADS(f0, p, h, er, prevlayer, nextlayer, doublespaceinfirstlayer);
                     else
                         adss{n} = Line(ers(n), h);
                     end

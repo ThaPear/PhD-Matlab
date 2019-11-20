@@ -1,9 +1,20 @@
-function [er, mu] = GetEpsilonMu(tline, f)
+function [er, mu] = GetEpsilonMu(tline, f, Nlayers)
     project = CST.InitializeUnitCellProject();
     
     project.StoreParameter('dx', 4.4);
     project.StoreParameter('dy', 'dx');
-    tline.BuildCST(project);
+    
+    % Repeat the structure this number of times.
+    if(nargin < 3)
+        Nlayers = 3;
+    end
+    
+    wcs = project.WCS();
+    wcs.Enable();
+    for(i = 1:Nlayers)
+        tline.BuildCST(project);
+    end
+    wcs.Disable();
     
     % 
     th0 = 0 * pi/180;
@@ -27,13 +38,16 @@ function [er, mu] = GetEpsilonMu(tline, f)
     project.StoreParameter('fmin', fCST-1);
     project.StoreParameter('fmax', fCST+1);
     
+    % If the ADL is in free space, de-embed the port to the correct distance.
     floquetport = project.FloquetPort();
-    floquetport.StartBulkMode();
-    floquetport.Port('Zmin');
-    floquetport.SetDistanceToReferencePlane(['-openboundary_distance+', num2str(tline.elements{end}.L*1e3, '%.15g')]);
-    floquetport.Port('Zmax');
-    floquetport.SetDistanceToReferencePlane(['-openboundary_distance+', num2str(tline.elements{end}.L*1e3, '%.15g')]);
-    floquetport.EndBulkMode();
+    if(isprop(tline.elements{1}, 'er') && tline.elements{1}.er == 1)
+        floquetport.StartBulkMode();
+        floquetport.Port('Zmin');
+        floquetport.SetDistanceToReferencePlane(['-openboundary_distance+', num2str(tline.elements{1}.L*1e3, '%.15g')]);
+        floquetport.Port('Zmax');
+        floquetport.SetDistanceToReferencePlane(['-openboundary_distance+', num2str(tline.elements{end}.L*1e3, '%.15g')]);
+        floquetport.EndBulkMode();
+    end
 %     project.StoreParameter('openboundary_distance', [CST.Defaults.OpenBoundaryDistance, '+', num2str(tline.elements{end}.L*1e3, '%.15g')]);
 
 
@@ -67,10 +81,11 @@ function [er, mu] = GetEpsilonMu(tline, f)
     CST.ExportResult(project, '1D Results\S-Parameters', filename);
     [fs, parameters, Ste, Stm] = CST.LoadData([filename, '.s4p']);
     
-    d = tline.GetHeight();
+    d = Nlayers * tline.GetHeight();
     [er, mu] = EpsilonMu(f, Ste, Stm, Ste0, Stm0, d, th0, th, ph);
     
-%     project.ResetAll(); project.Quit();
+%     project.ResetAll();
+    project.Quit();
 end
 
 

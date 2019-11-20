@@ -97,9 +97,9 @@ classdef ADS_Real < ADS
                 % Glue
                 elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
                 % Final layer
-                elements = [elements, {ADL_Real(p,                   ... % p
+                elements = [elements, {ADL_Real(p,              ... % p
                                     ds(end-1), inf,             ... % d(n-1,n), d(n,n+1)
-                                    ss(end), 0,                 ... % s(n-1,n), s(n,n+1)
+                                    ss(end-1), ss(end),         ... % s(n-1,n), s(n,n+1)
                                     ws(end-1), ws(end), 0,      ... % w(n-1), w(n), w(n+1)
                                     Materials.Foam.permittivity, Materials.Foam.permittivity)}];
                 % Substrate

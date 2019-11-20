@@ -98,7 +98,7 @@ classdef ADS < TLine
                 %% Final layer
                 elements = [elements, {ADL(p,                   ... % p
                                     ds(end-1), inf,             ... % d(n-1,n), d(n,n+1)
-                                    ss(end-1), 0,                 ... % s(n-1,n), s(n,n+1)
+                                    ss(end-1), ss(end),         ... % s(n-1,n), s(n,n+1)
                                     ws(end-1), ws(end), 0,      ... % w(n-1), w(n), w(n+1)
                                     erhosts(end-1), erhosts(end))}];
                 % Half-width line on the end.
