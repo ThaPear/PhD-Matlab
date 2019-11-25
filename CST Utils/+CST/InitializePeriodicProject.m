@@ -1,5 +1,5 @@
-function project = InitializePeriodicProject()
-    project = CST.InitializeBasicProject();
+function [project, dsproject] = InitializePeriodicProject()
+    [project, dsproject] = CST.InitializeBasicProject();
 
     %% Set up boundaries.
     boundary = project.Boundary();

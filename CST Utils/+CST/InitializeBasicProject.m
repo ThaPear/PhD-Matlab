@@ -1,5 +1,6 @@
-function project = InitializeBasicProject()
+function [project, dsproject] = InitializeBasicProject()
     project = CST.Application.NewMWS();
+    dsproject = CST.Application.ActiveDS();
 
     project.AddToHistory('ChangeSolverType "HF Frequency Domain"');
 

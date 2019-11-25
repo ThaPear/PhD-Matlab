@@ -1,5 +1,5 @@
 function project = InitializeUnitCellProject()
-    project = CST.InitializeBasicProject();
+    [project, dsproject] = CST.InitializeBasicProject();
 
     %% Set up boundaries.
     boundary = project.Boundary();
