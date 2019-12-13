@@ -1,5 +1,6 @@
 % close all;
 clear;
+clear global;
 SetupPath;
 % clc;
 
@@ -8,27 +9,27 @@ c0 = Constants.c0;
 z0 = Constants.z0;
 f0 = 31e9;          % 13.75 to 31 GHz.
 
-z1 = 120;
+z1 = 90;
 z2 = z0;
 
 % Slot parameters.
-dx = 4.4e-3; %4.35e-3; %4.354838709677e-3; %c0/f0 * 0.45;
+dx = 4.35e-3; %4.35e-3; %4.354838709677e-3; %c0/f0 * 0.45;
 dy = dx;
 erback = Materials.Substrate.permittivity;
-hback = 2e-3;
-wslot = 1.8e-3;
+hback = 1e-3;
+wslot = 0.7e-3;
 dslot = 2.5e-3;
 walled = 1;
 
 % Feed settings.
-C = inf;%1e-12;
-zfeed = 120;
+C = 1e-12;
+zfeed = 80;
 
 % ADL parameters.
 p = dx / 2;
 gamma = 0.2;
 N = 2;
-f0match = 20e9;
+f0match = 19e9;
 f0design = 29e9;
 
 
@@ -49,7 +50,6 @@ tlinedown = ShortedLine(erback*0.7, hback, erback);
 % The slot.
 % slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown);
 slot = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot, tlineup, tlinedown);
-slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown);
 % return
 
 dispex('hback = %g, wslot = %g, dslot = %g, z1 = %g, zfeed = %g, f0design = %g, f0match = %g\n', ...

@@ -6,7 +6,8 @@ function [er, mu] = GetEpsilonMu(tline, f, Nlayers)
     
     % Repeat the structure this number of times.
     if(nargin < 3)
-        Nlayers = 3;
+        % Multilayer makes no sense as permittivity extraction only works for thin layers.
+        Nlayers = 1;
     end
     
     wcs = project.WCS();

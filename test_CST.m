@@ -1,9 +1,59 @@
 close all;
-% clear;
+clearvars -except project dsproject;
 SetupPath;
 clc;
 
+if(~exist('project', 'var'))
+    project = CST.InitializeUnitCellProject();
+    dsproject = CST.Application.ActiveDS();
+    CST.BuildSchematic(dsproject, 80, 1e-12);
+    CST.AddSchematicTask(dsproject);
+end
 
+% project.StoreGlobalDataValue('matlabfcn', 'ReportInformation "TEST"');
+% project.RunScript(GetFullPath('CST Interface\Bas\test.bas'))
+
+% block = dsproject.Block();
+% block.Reset();
+% block.Name('CAP1');
+% block.StartPropertyIteration();
+% propertyname = ' ';
+% while(~isempty(propertyname))
+%     [propertyname, type, value] = block.GetNextProperty();
+%     [propertyname, ' - ', type, ' - ', value]
+% end
+
+% simulationtask = dsproject.SimulationTask();
+% simulationtask.Name('SPara1');
+% [amplitude, fmin, fmax] = simulationtask.GetGaussProperties('1')
+
+% boundary = project.Boundary();
+% [xmin, xmax, ymin, ymax, zmin, zmax] = boundary.GetCalculationBox();
+% [valid, theta, phi, direction] = boundary.GetUnitCellScanAngle()
+
+% fdsolver = project.FDSolver();
+% [phistart, phiend, nphisteps, thetastart, thetaend, nthetasteps, einctheta, eincphi, activation] = fdsolver.GetRCSSweepProperties();
+
+% pick = project.Pick();
+% [bool, x, y, z] = pick.GetPickpointCoordinatesByIndex(0)
+% [shapename, edgeid, vertexid] = pick.GetPickedEdgeByIndex(0)
+% [shapename, faceid] = pick.GetPickedFaceByIndex(0)
+
+plot1d = project.Plot1D();
+project.SelectTreeItem('1D Results\S-Parameters\SZmax(1),Zmax(1)');
+% project.SelectTreeItem('1D Results\S-Parameters\S1,1');
+plot1d.SetCurveLimit(1, 25)
+plot1d.Plot();
+% [enabled, curvelimit] = plot1d.GetCurveLimit()
+
+% plot1d.DeleteAllBackGroundShapes();
+% plot1d.AddThinBackGroundLine(28, -200, 28, 0);
+% plot1d.Plot();
+
+
+% [bool, x, y, z, vxre, vyre, vzre, vxim, vyim, vzim] = project.GetFieldVector()
+
+%%
 % project = CST_Util.InitializeProject();
 % project.StoreParameter('dx', 13.5);
 % project.StoreParameter('dy', 13.5);
@@ -76,31 +126,33 @@ clc;
 %     [f, parameters, values] = CST.LoadData([exportfilename, exportfileextension]);
 %     Zs(i:i+24) = values.';
 % end
-
-%%
-parameters = readtable('Temp/result_navigator.csv', 'Delimiter', ';');
-feed_shield_totalangle = [cellfun(@str2double, parameters.feed_shield_totalangle)];
-feed_shield_Nvias = [cellfun(@str2double, parameters.feed_shield_Nvias)];
-feed_shield_distance = [cellfun(@str2double, parameters.feed_shield_distance)];
-
-viadistance = 2 .* feed_shield_distance .* sind(feed_shield_totalangle ./ feed_shield_Nvias ./ 2);
-Zs(viadistance < 0.3) = nan;
-
-for(n = 2:6)
-    runIDs = [cellfun(@str2double, parameters.x3DRunID)];
-    runIDs = runIDs(feed_shield_Nvias == n);
-
-    Zsmat = [];
-    xs = [];
-    ys = [];
-    for(i = runIDs.')
-        xs(feed_shield_totalangle(i)/5-3) = feed_shield_totalangle(i);
-        ys(floor(feed_shield_distance(i)*20)-8) = feed_shield_distance(i);
-        Zsmat(feed_shield_totalangle(i)/5-3, floor(feed_shield_distance(i)*20)-8) = Zs(i);
-    end
-    figureex; hold off; imagesc(ys, xs, Zsmat);
-    title(['Nvias = ', num2str(n)]);
-    colorbar;
-    ax = gca;    map = ax.Colormap;    map(1,:) = 1;    ax.Colormap = map; % Make 0 (or nan) white.
-    alignplot(gcf, 4, 2, n-1, [], 2);
-end
+% 
+% 
+% 
+% %%
+% parameters = readtable('Temp/result_navigator.csv', 'Delimiter', ';');
+% feed_shield_totalangle = [cellfun(@str2double, parameters.feed_shield_totalangle)];
+% feed_shield_Nvias = [cellfun(@str2double, parameters.feed_shield_Nvias)];
+% feed_shield_distance = [cellfun(@str2double, parameters.feed_shield_distance)];
+% 
+% viadistance = 2 .* feed_shield_distance .* sind(feed_shield_totalangle ./ feed_shield_Nvias ./ 2);
+% % Zs(viadistance < 0.3) = nan;
+% 
+% for(n = 2:6)
+%     runIDs = [cellfun(@str2double, parameters.x3DRunID)];
+%     runIDs = runIDs(feed_shield_Nvias == n);
+% 
+%     Zsmat = [];
+%     xs = [];
+%     ys = [];
+%     for(i = runIDs.')
+%         xs(feed_shield_totalangle(i)/5-3) = feed_shield_totalangle(i);
+%         ys(floor(feed_shield_distance(i)*20)-4) = feed_shield_distance(i);
+%         Zsmat(feed_shield_totalangle(i)/5-3, floor(feed_shield_distance(i)*20)-4) = Zs(i);
+%     end
+%     figureex; hold off; imagesc(ys, xs, Zsmat);
+%     title(['Nvias = ', num2str(n)]);
+%     colorbar;
+%     ax = gca;    map = ax.Colormap;    map(1,:) = 1;    ax.Colormap = map; % Make 0 (or nan) white.
+%     alignplot(gcf, 4, 2, n-1, [], 2);
+% end

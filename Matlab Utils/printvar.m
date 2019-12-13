@@ -22,6 +22,14 @@ function printvar(varargin)
                 disp([varname, ' = ', num2str(val), ' = ', num2str(abs(val)), char(8736), num2str(rad2deg(angle(val)))]);
             end
         end
+    elseif(ischar(val))
+        if(length(val) > 1)
+            for(i = 1:length(val))
+                disp([varname, '(', num2str(i), ') = ''', num2str(val(i)), '''']);
+            end
+        else
+            disp([varname, ' = ''', num2str(val), '''']);
+        end
     elseif(isstruct(val))
         props = fieldnames(val);
         for(i = 1:length(props))

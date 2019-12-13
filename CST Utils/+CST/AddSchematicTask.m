@@ -11,7 +11,23 @@ function AddSchematicTask(dsproject)
     
     simulationtask = dsproject.SimulationTask();
     simulationtask.Reset();
-    simulationtask.Type('s-parameters');
     simulationtask.Name('SPara1');
-    simulationtask.Create();
+    if(~simulationtask.DoesExist())
+        simulationtask.Type('s-parameters');
+        simulationtask.Create();
+    end
+    
+    try
+        parametersweep = dsproject.ParameterSweep();
+        parametersweep.AddSequence('Sequence 1');
+        parametersweep.AddParameter_ArbitraryPoints('Sequence 1', 'aa_phi', '0');
+        parametersweep.AddParameter_ArbitraryPoints('Sequence 1', 'aa_theta', '0;60');
+    catch exception
+        % Ignore it if the sweep was already defined.
+       if(~strcmpi(exception.identifier, 'MATLAB:COM:E2147549183'))
+           rethrow(exception);
+       end
+    end
+    
+    
 end

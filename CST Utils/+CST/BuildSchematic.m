@@ -1,8 +1,8 @@
 % Builds the schematic view for N ports, adds capacitances and external ports at the specified
 % values.
 % If capacitance = inf or not provided, capacitors are not placed.
-function BuildSchematic(project, dsproject, externalimpedance, capacitance)
-    if(nargin < 4)
+function BuildSchematic(dsproject, externalimpedance, capacitance)
+    if(nargin < 3)
         capacitance = inf;
     end
     if(nargin == 0)
@@ -17,13 +17,14 @@ function BuildSchematic(project, dsproject, externalimpedance, capacitance)
             capacitance = 1e-12;
         end
         
-        project = CST.Application.Active3D();
         dsproject = CST.Application.ActiveDS();
         externalimpedance = 80;
     end
         
 
     gridsize = 25;
+    capdistance = 18*gridsize;
+    portdistance = 8*gridsize;
     
     block = dsproject.Block();
     link = dsproject.Link();
@@ -42,13 +43,36 @@ function BuildSchematic(project, dsproject, externalimpedance, capacitance)
     baseposY = block.GetPositionY();
     Nports = block.GetNumberOfPins();
     
-    port = []
+    
+    pinnames = cell(1,Nports);
+    port = [];
+    for(i = 1:Nports)
+        pinnames{i} = block.GetPinName(i-1);
+        port(i).relpos = struct('x', block.GetPinPositionX(i-1) - baseposX, ...
+                                'y', block.GetPinPositionY(i-1) - baseposY);
+        if(abs(port(i).relpos.y) > abs(port(i).relpos.x))
+            if(port(i).relpos.y < 0)
+                % Port is above block
+                port(i).orientation = 'up';
+            else
+                % Port is below block
+                port(i).orientation = 'down';
+            end
+        elseif(port(i).relpos.x < 0)
+            % Port is left of block
+            port(i).orientation = 'left';
+        else
+            % Port is right of block
+            port(i).orientation = 'right';
+        end
+    end
     
     if(isinf(capacitance))
         % No capacitances, so just link the ports to the block directly.
         for(i = 1:Nports)
             port(i).block = 'MWSSCHEM1';
-            port2pin = num2str(i);
+%             port(i).pin = num2str(i);
+            port(i).pin = pinnames{i};
         end
     else
         for(i = 1:Nports)
@@ -62,14 +86,31 @@ function BuildSchematic(project, dsproject, externalimpedance, capacitance)
             end
             block.Type('CircuitBasic\Capacitor');
             block.SetDoubleProperty('Capacitance', capacitance/capUnit);
-            block.Position(baseposX + (2*i-3)*5 * gridsize, baseposY + 5 * gridsize);
-            block.Rotate(90);
+            
+%             block.Position(baseposX + (2*i-3)*5 * gridsize, baseposY + 5 * gridsize);
+            
+            switch(port(i).orientation)
+                case 'left'
+                    block.Rotate(180);
+                    block.Position(baseposX - capdistance, baseposY + port(i).relpos.y);
+                case 'right'
+                    block.Position(baseposX + capdistance, baseposY + port(i).relpos.y);
+                case 'up'
+                    block.Rotate(-90);
+                    block.Position(baseposX + port(i).relpos.x, baseposY - capdistance);
+                case 'down'
+                    block.Rotate(90);
+                    block.Position(baseposX + port(i).relpos.x, baseposY + capdistance);
+                otherwise
+                    error('Invalid port orientation');
+            end
+            
             block.Create();
             
             %% Link the capacitances to the array.
             link.Reset();
             link.SetConnection(1, 'B', name, '1');
-            link.SetConnection(2, 'B', 'MWSSCHEM1', i);
+            link.SetConnection(2, 'B', 'MWSSCHEM1', pinnames{i});
             link.Create();
             
             % Set the external ports to connect to the capacitances.
@@ -87,7 +128,19 @@ function BuildSchematic(project, dsproject, externalimpedance, capacitance)
             externalport.Delete();
             externalport.Number(i);
         end
-        externalport.Position(baseposX + (2*i-3)*5 * gridsize, baseposY + 10 * gridsize);
+        %externalport.Position(baseposX + (2*i-3)*5 * gridsize, baseposY + 10 * gridsize);
+        switch(port(i).orientation)
+            case 'left'
+                externalport.Position(baseposX - capdistance - portdistance, baseposY + port(i).relpos.y);
+            case 'right'
+                externalport.Position(baseposX + capdistance + portdistance, baseposY + port(i).relpos.y);
+            case 'up'
+                externalport.Position(baseposX + port(i).relpos.x, baseposY - capdistance - portdistance);
+            case 'down'
+                externalport.Position(baseposX + port(i).relpos.x, baseposY + capdistance + portdistance);
+            otherwise
+                error('Invalid port orientation');
+        end
         externalport.Create();
         externalport.SetImpedanceType(1);
         externalport.SetImpedance(externalimpedance);
@@ -98,18 +151,26 @@ function BuildSchematic(project, dsproject, externalimpedance, capacitance)
             link.SetConnection(2, 'P', num2str(i), "");
         link.Create();
     end
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

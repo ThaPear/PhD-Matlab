@@ -1,7 +1,7 @@
 classdef Constants
     properties(Constant)
         c0 = 3e8;%299792458;
-        ep0 = 8.854e-12;%Constants.e^2 / (2*Constants.h*Constants.c0*Constants.alpha);%1/(Constants.mu0*Constants.c0^2); % 8.854187817620389e-12
+        ep0 = 8.854187817620389e-12;%Constants.e^2 / (2*Constants.h*Constants.c0*Constants.alpha);%1/(Constants.mu0*Constants.c0^2); % 8.854187817620389e-12
                                  % Or, with c=3e8 8.841941282883074e-12
         % Vacuum permeability mu0 = 4*pi*1.00000000082*1e-7;
         mu0 = 4*pi*1e-7;%2*Constants.h*Constants.alpha/(Constants.c0*Constants.e^2);

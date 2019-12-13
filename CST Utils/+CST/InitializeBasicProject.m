@@ -17,7 +17,6 @@ function [project, dsproject] = InitializeBasicProject()
     project.StoreParameter('fmin', fmin);
     project.StoreParameter('fmax', fmax);
     project.StoreParameter('fmesh', fmesh);
-    project.StoreParameter('fqwextraspace', fmin);
     project.StoreParameter('nsamplesperGHz', CST.Defaults.SamplesPerGHz);
 
     %% Frequency range and sampling
@@ -43,6 +42,9 @@ function [project, dsproject] = InitializeBasicProject()
 
     %% Set up open boundary
     boundary = project.Boundary();
+    boundary.AllBoundaries('open', 'open', ...   % x
+                           'open', 'open', ...   % y
+                           'open', 'open'); % z
 %     boundary.MinimumDistanceType('Fraction');
 %     boundary.MinimumDistancePerWavelengthNewMeshEngine(4);
 %     boundary.MinimumDistanceReferenceFrequencyType('User');
@@ -71,22 +73,22 @@ function [project, dsproject] = InitializeBasicProject()
     material.Type('Normal');
     material.ChangeBackgroundMaterial();
 
-    %% Enable bounding box rendering.
-    plot = project.Plot();
-    plot.DrawBox(1);
-    plot.DrawWorkplane(0);
-
-    %% Rotate the view.
-    plot.RestoreView('Bottom');
-    plot.RotationAngle(30); plot.Rotate('Right');
-    plot.RotationAngle(15); plot.Rotate('Down');
-    plot.Update();
-
-    %% Set shape accuracy
-    solid = project.Solid();
-    solid.ShapeVisualizationAccuracy2('120')
-
     try % Not supported by all CST versions.
+        %% Enable bounding box rendering.
+        plot = project.Plot();
+        plot.DrawBox(1);
+        plot.DrawWorkplane(0);
+
+        %% Rotate the view.
+        plot.RestoreView('Bottom');
+        plot.RotationAngle(30); plot.Rotate('Right');
+        plot.RotationAngle(15); plot.Rotate('Down');
+        plot.Update();
+
+        %% Set shape accuracy
+        solid = project.Solid();
+        solid.ShapeVisualizationAccuracy2('120')
+
         plot.ZoomToStructure();
     catch ex
     end

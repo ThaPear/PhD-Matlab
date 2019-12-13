@@ -41,18 +41,24 @@ for(iangle = 1:length(ths))
     % If the axes are empty, put in the frequency range indicator.
     if(length(axGamma.Children) < 1)
 %         plot(axGamma, [12 12 nan 31 31], [-1e9 1e9 nan -1e9 1e9], 'k');
-        patch(axGamma, [12 31 31 12], [-10+3*(iangle>1) -10+3*(iangle>1) 0 0], [0 0 0], ...
+        patch(axGamma, [13.75 14.5 14.5 13.75], [-10+3*(iangle>1) -10+3*(iangle>1) 0 0], [0 0 0], ...
             'FaceAlpha', 0.1, 'EdgeColor', 'none');
-        patch(axReal, [12 31 31 12], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
+        patch(axReal, [13.75 14.5 14.5 13.75], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
             'FaceAlpha', 0.1, 'EdgeColor', 'none');
-        patch(axImag, [12 31 31 12], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
+        patch(axImag, [13.75 14.5 14.5 13.75], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
+            'FaceAlpha', 0.1, 'EdgeColor', 'none');
+        patch(axGamma, [28 31 31 28], [-10+3*(iangle>1) -10+3*(iangle>1) 0 0], [0 0 0], ...
+            'FaceAlpha', 0.1, 'EdgeColor', 'none');
+        patch(axReal, [28 31 31 28], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
+            'FaceAlpha', 0.1, 'EdgeColor', 'none');
+        patch(axImag, [28 31 31 28], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
             'FaceAlpha', 0.1, 'EdgeColor', 'none');
     end
     
     % Calculate input impedance.
     tc = tic;
     Zas = slot.GetInputImpedance(fs, th, ph);
-    dispex('Calculated input impedance in %.3fs.\n', toc(tc));
+%     dispex('Calculated input impedance in %.3fs.\n', toc(tc));
     ZasC = Zas + Zcap; % With series capacitance.
     
     % Calculate reflection coefficient.
@@ -60,7 +66,8 @@ for(iangle = 1:length(ths))
     VSWR = (1 + abs(Gamma)) ./ (1 - abs(Gamma));
     
     % Output worst values.
-    ind = find(20*log10(abs(Gamma)) == max(20*log10(abs(Gamma(fs >= 13e9 & fs <= 31e9)))));
+%     ind = find(20*log10(abs(Gamma)) == max(20*log10(abs(Gamma(fs >= 13e9 & fs <= 31e9)))));
+    ind = find(20*log10(abs(Gamma)) == max(20*log10(abs(Gamma(fs >= 13.75e9 & fs <= 14.5e9 | fs >= 28e9 & fs <= 31e9)))));
     dispex('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
         th*180/pi, ph*180/pi, 20*log10(abs(Gamma(ind))), fs(ind)/1e9, real(ZasC(ind)), imag(ZasC(ind)));
     
@@ -76,8 +83,8 @@ for(iangle = 1:length(ths))
         
     drawnow;
     
-    figureex(iangle+10);
-        plot(fs/1e9, real(Zas), 'k');
-        plot(fs/1e9, imag(Zas), 'k--');
+%     figureex(iangle+10);
+%         plot(fs/1e9, real(Zas), 'k');
+%         plot(fs/1e9, imag(Zas), 'k--');
 end
 % legend('B', 'H', 'E');
