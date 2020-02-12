@@ -1,4 +1,4 @@
-function [f, value] = RealImag(filename)
+function [parameters, out] = RealImag(filename)
     dotindex = strfind(filename, '.');
     filename = filename(1:dotindex(end)-1);
     
@@ -8,7 +8,8 @@ function [f, value] = RealImag(filename)
     T = readtable([filename, '.imag'], 'FileType', 'text');
     valimag = table2array(T(:,2));
     
-    f = table2array(T(:,1));
+    parameters = [];
+    parameters.frequencies = table2array(T(:,1));
     
-    value = valreal + 1j.*valimag;
+    out = {valreal + 1j.*valimag};
 end
