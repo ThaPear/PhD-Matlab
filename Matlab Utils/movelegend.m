@@ -1,17 +1,20 @@
 % ---- movelegend.m
 
-function movelegend(pos, hAx)
+function movelegend(hAx, pos)
 %     hFig = gcf;
     switch(nargin)
         case 0
             pos = 'sw';
             hAx = gca;
         case 1
+            pos = hAx;
             hAx = gca;
     end
     if(~isa(hAx, 'matlab.graphics.axis.Axes'))
         if(isa(hAx, 'matlab.ui.Figure'))
             hAx = hAx.CurrentAxes;
+        else
+            error('Invalid hAx type %s.\n', class(hAx));
         end
     end
     

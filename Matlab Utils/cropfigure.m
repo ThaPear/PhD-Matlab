@@ -24,7 +24,7 @@ function cropfigure(hFig, padding)
     % Detect the first column which has anything other than the default
     % background color.
     cdatarow = sum(cdata, 1);
-    firstx = find(cdatarow ~= bgclr * szy, 1) - 1;
+    firstx = find(cdatarow ~= bgclr * szy, 1) - 1 - 1;
     lastx  = find(cdatarow ~= bgclr * szy, 1, 'last') + 1;
     width = lastx - firstx;
     

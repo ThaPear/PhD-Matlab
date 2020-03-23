@@ -2,13 +2,14 @@
 % ---- Util
 % ---- figureex.m
 
-function hFig = figureex(iFig)
+function [hFig, hAx] = figureex(iFig)
     if(nargin == 0 || isempty(iFig))
         hFig = figure;
     else
         hFig = figure(iFig);
         toolbars = findall(hFig,'type','uitoolbar');
         if(length(toolbars) == 2)
+            hAx = hFig.CurrentAxes;
             return;
         end
     end
@@ -61,6 +62,24 @@ function hFig = figureex(iFig)
     axesButton = uipushtool(toolbar, 'TooltipString', 'Expand axes');
     axesButton.ClickedCallback = @(~, ~) expandaxes(hFig);
     axesButton.CData = icon;
+    
+    %% Crop figure
+    icon(:) = nan;
+    icon(4:12, 4, :) = 0;
+    icon(6, 2:10, :) = 0;
+    icon(6:15, 11, :) = 0;
+    icon(13, 4:13, :) = 0;
+    % Diagonal line in box
+    icon(11, 6, :) = 0;    icon(10, 7, :) = 0;    icon(9, 8, :) = 0;    icon(8, 9, :) = 0;
+    icon(11, 7, :) = 0.5;  icon(10, 8, :) = 0.5;  icon(9, 9, :) = 0.5;
+    icon(10, 6, :) = 0.5;  icon(9, 7, :) = 0.5;   icon(8, 8, :) = 0.5;
+    % Diagonal line out of box
+    icon(5, 12, :) = 0;    icon(4, 13, :) = 0;
+    icon(5, 11, :) = 0.5;  icon(4, 12, :) = 0.5;  icon(3, 13, :) = 0.5;
+    icon(6, 12, :) = 0.5;  icon(5, 13, :) = 0.5;  icon(4, 14, :) = 0.5;
+    but = uipushtool(toolbar, 'TooltipString', 'Crop Figure');
+    but.CData = icon;
+    but.ClickedCallback = @(~, ~) CropFigure(hFig);
     
     %% Xlim
     icon(:) = 1;
@@ -123,7 +142,7 @@ function hFig = figureex(iFig)
         icon(y0:y0+7, [x0 x0+5], :) = 0;
         icon(icon == 240/255) = nan;
         legendButton = uipushtool(toolbar, 'TooltipString', ['Move legend to ', lower(texts{i})]);
-        legendButton.ClickedCallback = @(~, ~) movelegend(pos, hFig.CurrentAxes);
+        legendButton.ClickedCallback = @(~, ~) movelegend(hFig.CurrentAxes, pos);
         legendButton.CData = icon;
         if(i == 1 || i == 5)
             legendButton.Separator = 'on';
@@ -173,16 +192,17 @@ function hFig = figureex(iFig)
         set(jActionItem, 'ActionPerformedCallback', @(~, ~) RemoveLine(hFig, idxstr));
     end
     
+    hAx = hFig.CurrentAxes;
+    
     %% Restore the pre-2018 figure toolbar.
     % From https://nl.mathworks.com/matlabcentral/answers/419036-what-happened-to-the-figure-toolbar-in-r2018b-why-is-it-an-axes-toolbar-how-can-i-put-the-buttons
     % To do it by default:
-    % set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig))
-    % set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'))
+    % set(groot,'defaultFigureCreateFcn',@(hFig,~)addToolbarExplorationButtons(hFig))
+    % set(groot,'defaultAxesCreateFcn',@(hAx,~)set(hAx.Toolbar,'Visible','off'))
     ver = version('-release');
     if(str2double(ver(1:4)) >= 2018)
-        addToolbarExplorationButtons(gcf); % Adds buttons to figure toolbar
-        ax = gca;
-        ax.Toolbar.Visible = 'off'; % Turns off the axes toolbar
+        addToolbarExplorationButtons(hFig); % Adds buttons to figure toolbar
+        hAx.Toolbar.Visible = 'off'; % Turns off the axes toolbar
     end
     %% Show the figure
     hFig.Visible = 'on';
@@ -253,6 +273,12 @@ function ToggleGrid(hFig)
     else
         grid(hAx, 'on');
     end
+end
+
+function CropFigure(hFig)
+    drawnow;
+    cropfigure(hFig);
+    drawnow;
 end
 
 function RequestLim(hFig, lim, limstr)

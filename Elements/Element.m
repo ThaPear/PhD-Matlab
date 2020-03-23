@@ -2,7 +2,7 @@ classdef Element
     properties
     end
     methods
-        function Z = GetInputImpedance(this, isTE, f, k0, kr)
+        function Zin = GetInputImpedance(this, isTE, f, k0, kr)
             error('%s::GetInputImpedance:\n\tShould not be called on an Element object.\n\tUse a derived class.', mfilename);
         end
         function ABCD = GetABCD(this, isTE, f, k0, kr)

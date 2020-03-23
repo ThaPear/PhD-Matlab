@@ -71,7 +71,7 @@ function addlegendentry(varargin)
     end
     
     entries = [leg.UserData.entries, entries];
-    hLines = [leg.UserData.hLines, hLines];
+    hLines = [leg.UserData.hLines; hLines];
     
     % Remove entries that refer to invalid lines.
     entries = entries(ishandle(hLines));

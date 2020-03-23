@@ -12,7 +12,7 @@ classdef TerminatedTLine < Element
             this.terminator = terminator;
         end
         
-        function zin = GetInputImpedance(this, isTE, f, k0, kr)
+        function Zin = GetInputImpedance(this, isTE, f, k0, kr)
             ABCD = this.tline.GetABCD(isTE, f, k0, kr);
             
             Zmat = ABCD2Z(ABCD);
@@ -21,9 +21,9 @@ classdef TerminatedTLine < Element
             ZL = this.terminator.GetInputImpedance(isTE, f, k0, kr);
             
             % Convert Z-matrix with load into input impedance.
-            zin = Zmat.z11 - (Zmat.z12 .* Zmat.z21) ./ (Zmat.z22 + ZL);
+            Zin = Zmat.z11 - (Zmat.z12 .* Zmat.z21) ./ (Zmat.z22 + ZL);
 %             zout = Zmat.z22 - (Zmat.z12 .* Zmat.z21) ./ (Zmat.z11 + ZL);
-            if(max(isnan(zin)))
+            if(max(isnan(Zin)))
                 breakpoint;
             end
         end

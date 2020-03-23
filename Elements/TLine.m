@@ -14,6 +14,22 @@ classdef TLine < Element
         function n = get.N(this)
             n = length(this.elements);
         end
+        function Zin = GetInputImpedance(this, isTE, f, k0, kr)
+            ZL = this.elements{end}.GetInputImpedance(isTE, f, k0, kr);
+            
+            line = TLine(this.elements(1:end-1));
+            if(line.N > 0)
+                ABCD = line.GetABCD(isTE, f, k0, kr);
+            else
+                Zin = ZL;
+                return;
+            end
+            
+            Zmat = ABCD2Z(ABCD);
+            
+            % Convert Z-matrix with load into input impedance.
+            Zin = Zmat.z11 - (Zmat.z12 .* Zmat.z21) ./ (Zmat.z22 + ZL);
+        end
         function [ABCD] = GetABCD(this, isTE, f, k0, kr)
             ABCD = ABCDMatrix(1, 0, ...
                               0, 1);
@@ -23,6 +39,7 @@ classdef TLine < Element
                 ABCDelement = element.GetABCD(isTE, f, k0, kr);
                 if(max(isnan(ABCDelement.A(:))) || max(isnan(ABCDelement.B(:))) || max(isnan(ABCDelement.C(:))) || max(isnan(ABCDelement.D(:))))
                     breakpoint;
+                    element.GetABCD(isTE, f, k0, kr);
                 end
                 % Multiply the ABCD for each element together.
                 ABCD = ABCD.mul(ABCDelement);

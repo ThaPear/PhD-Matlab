@@ -15,10 +15,20 @@ function alignplot(hFig, Nx, Ny, Px, Py, screen)
     Py = mod(Py-1, Ny)+1;
     
     gr = groot;
-    x0 = gr.MonitorPositions(screen, 1);
-    y0 = gr.MonitorPositions(screen, 2);
-    szx = gr.MonitorPositions(screen, 3);
-    szy = gr.MonitorPositions(screen, 4);
+    positions = gr.MonitorPositions;
+    % Sort the monitor positions by their x-coordinate so that screens are
+    % indexed from left to right.
+    positions = sortrows(positions, 1);
+    % Check if there's enough screens.
+    if(screen > size(positions, 1))
+        screen = size(positions, 1);
+    end
+    
+    
+    x0 = positions(screen, 1);
+    y0 = positions(screen, 2);
+    szx = positions(screen, 3);
+    szy = positions(screen, 4);
     
     % Subtract the start bar.
 %     if(screen == 1)

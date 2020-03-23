@@ -229,7 +229,7 @@ classdef Slot
             project.StoreParameter('slot_feedwidth', ['slot_width / 2']);
             project.StoreParameter('dx', this.dx*1e3);
             project.StoreParameter('dy', this.dy*1e3);
-            project.MakeSureParameterExists('zslot', 80);
+            project.MakeSureParameterExists('slot_impedance', 80);
             
             component = project.Component();
             polygon3d = project.Polygon3D();
@@ -317,7 +317,7 @@ classdef Slot
             discretefaceport.Reset();
             discretefaceport.PortNumber(portnumber);
             discretefaceport.Label('SlotFeed');
-            discretefaceport.Impedance('zslot');
+            discretefaceport.Impedance('slot_impedance');
             discretefaceport.SetP1(1);
             discretefaceport.SetP2(1);
             discretefaceport.CenterEdge(1);

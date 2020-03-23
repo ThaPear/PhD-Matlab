@@ -1,12 +1,5 @@
 function [ABCD] = S2ABCD(S, z01, z02)
 
-if(nargin < 2)
-    z01 = Constants.z0;
-end
-if(nargin < 3)
-    z02 = Constants.z0;
-end
-
 s11 = S.s11;
 s12 = S.s12;
 s21 = S.s21;
