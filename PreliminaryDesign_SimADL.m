@@ -42,7 +42,8 @@ for(iangle = 1:length(ths))
         end
         ylim([-30 0]);
         xlim([-inf inf]);
-        xlabel('Frequency');
+        xlim([12 32]);
+        xlabel('Frequency [GHz]');
         ylabel('|\Gamma| [dB]');
 
         plot(axS, fs/1e9, 20*log10(abs(Ste.s11)), styles{iangle});

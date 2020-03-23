@@ -42,7 +42,7 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, extraspaceinfirs
     % Start with max shift.
     s = p/2;
     
-    while(N < Nmax)
+    while(N <= Nmax)
 %         dispex('N = %i\n', N);
         d = (L/N);
         ds = [d/2, repmat(d, 1, N-1), d/2];
@@ -131,6 +131,6 @@ function ads = DesignADS(f0, p, L, erdes, prevlayer, nextlayer, extraspaceinfirs
     if(~exist('ads', 'var') || isempty(ads))
         error(['Failed to design desired permittivity (%g) with up to %g layers (max is %g).', ...
               '\n\tDecrease dz (%.3gmm = %.3g%ceff)'], ...
-              erdes, N, max(ers), (L/N)*1e3, (L/N)/(lambda0/sqrt(erdes)), 955);
+              erdes, Nmax, max(ers), (L/Nmax)*1e3, (L/Nmax)/(lambda0/sqrt(erdes)), 955);
     end
 end

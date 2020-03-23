@@ -6,7 +6,7 @@ if(~strcmp(ok, 'Yes'))
 end
 
 % Is the slot dualpol?
-dualpol = ~strcmp(class(slot), 'Slot'); %#ok<STISA>
+dualpol = contains(lower(class(slot)), 'dualpol');
 
 %% CST setup
 project = CST.InitializePeriodicProject();
@@ -37,7 +37,9 @@ project.StoreParameter('slot_bowtie_outer', ['slot_feedlength']);
 project.StoreParameter('slot_s0', 0.25);
 
 slot.BuildCST(project);
-vias.BuildCST(project);
+if(dualpol)
+    vias.BuildCST(project);
+end
 cavity.BuildCST(project);
 Materials.BuildCST(project);
 
@@ -45,9 +47,13 @@ Materials.BuildCST(project);
 if(~dualpol)
     solid.Delete('Slot:Walls');
 	project.StoreParameter('slot_s0', 0);
-	project.StoreParameter('adl_s0', -0.5);
+	project.StoreParameter('adl_s0', 0);
     project.Rebuild();
 end
 
 solid.Subtract('BackingReflector:Dielectric', 'Cavity:Cavity');
 solid.Subtract('BackingReflector:Dielectric', 'Cavity:CavityDiag');
+
+dsproject = CST.Application.ActiveDS();
+CST.BuildSchematic(dsproject, zfeed, C);
+CST.AddSchematicTask(dsproject);
