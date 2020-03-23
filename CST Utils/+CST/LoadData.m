@@ -1,4 +1,4 @@
-function [f, parameters, varargout] = LoadData(filename)
+function [parameters, varargout] = LoadData(filename)
     split = strsplit(filename, '.');
     extension = split{end};
     
@@ -12,21 +12,15 @@ function [f, parameters, varargout] = LoadData(filename)
             [parameters, varargout] = CST.LoadData.Txt(filename);
         case 'mat'
             dat = load(filename);
-            if(~isfield(dat, 'f'))
-                error('No frequency found in ''%s''.', filename);
-            end
-            f = dat.f;
             parameters = dat;
-            parameters.f = [];
             varargout = {};
         case 'cut'
-            f = [];
             [parameters, varargout] = CST.LoadData.Grasp(filename);
         otherwise
             error('Unknown file format ''%s'' specified.', extension);
     end
     
-    if(iscell(varargout) && nargout ~= length(varargout)+2)
+    if(iscell(varargout) && nargout ~= length(varargout)+1)
         spl = strsplit(filename, '.');
         error(['Invalid number of output arguments for file type ''', spl{end}, ''', ', num2str(length(varargout)+2), ' expected.']);
     elseif(~iscell(varargout))

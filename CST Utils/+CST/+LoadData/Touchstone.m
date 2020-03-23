@@ -77,19 +77,23 @@ function [parameters, out] = Touchstone(filename)
         otherwise
             error('Invalid data format %s.', header.dataformat);
     end
+    % Close the file.
+    fclose(fileID);
+    
     % Reshape into the right shape for output.
     out = reshape(dat, numPorts, numPorts, []);
+    out = {out};
     
     % Scale frequency values to Hz.
     switch(lower(header.frequencyunit))
         case 'hz'
-            parameters.f = parameters.f * 1e0;
+            parameters.frequencies = parameters.frequencies * 1e0;
         case 'khz'
-            parameters.f = parameters.f * 1e3;
+            parameters.frequencies = parameters.frequencies * 1e3;
         case 'mhz'
-            parameters.f = parameters.f * 1e6;
+            parameters.frequencies = parameters.frequencies * 1e6;
         case 'ghz'
-            parameters.f = parameters.f * 1e9;
+            parameters.frequencies = parameters.frequencies * 1e9;
         otherwise
             error('Unknown frequency unit specified in TOUCHSTONE header.');
     end
