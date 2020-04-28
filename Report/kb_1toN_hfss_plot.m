@@ -1,9 +1,11 @@
-function kb_1to8_hfss_plot(folder, filenamebase)
+function kb_1toN_hfss_plot(folder, filenamebase)
 
 extension = '.csv';
-nplotsX = 6;
+nplotsX = 8;
+% nplotsX = 4;
 nplotsY = 4;
-linewidth = 1.5;
+screen = 2;
+linewidth = 1;
 axlinewidth = 1;
 
 figureex(1);
@@ -25,12 +27,17 @@ filename = [filenamebase, 'S11', extension];
     
     plot(hAx, f, S11, 'LineWidth', linewidth);
 
-    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], 1);
+    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], screen);
     xlabel(hAx, 'Frequency [GHz]');
     ylabel(hAx, '|S_{11}| [dB]');
     hFig.Name = filename;
     hAx.LineWidth = axlinewidth;
+    xlim([12 32]);
     ylim([-30 0]);
+    
+if(contains(lower(filenamebase), 'transition'))
+    return;
+end
 
 %% S12 for back2back
 if(contains(lower(filenamebase), 'back2back'))
@@ -46,11 +53,12 @@ if(contains(lower(filenamebase), 'back2back'))
 
         plot(hAx, f, S12, 'LineWidth', linewidth);
 
-        alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], 1);
+        alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], screen);
         xlabel(hAx, 'Frequency [GHz]');
         ylabel(hAx, '|S_{12}| [dB]');
         hFig.Name = filename;
         hAx.LineWidth = axlinewidth;
+        xlim([12 32]);
         ylim([-1.5 0]);
         
         
@@ -65,11 +73,12 @@ if(contains(lower(filenamebase), 'back2back'))
         
         plot(hAx, f, 10*log10(val), 'LineWidth', linewidth);
         
-        alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], 1);
+        alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], screen);
         xlabel(hAx, 'Frequency [GHz]');
         ylabel(hAx, '|S_{11}|^2 + |S_{12}|^2 [dB]');
         hFig.Name = filename;
         hAx.LineWidth = axlinewidth;
+        xlim([12 32]);
         ylim([-1.5 0]);
         
     return;
@@ -88,7 +97,7 @@ filename = [filenamebase, 'Sx1', extension];
     
     plot(hAx, f, Sx1, 'LineWidth', linewidth);
 
-    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], 1);
+    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], screen);
     xlabel(hAx, 'Frequency [GHz]');
     ylabel(hAx, '|S_{11}| [dB]');
     hFig.Name = filename;
@@ -97,6 +106,7 @@ filename = [filenamebase, 'Sx1', extension];
     mx = max(Sx1(:));
     mn = min(Sx1(:));
     
+    xlim([12 32]);
     ylim([floor(mn) ceil(mx)]);
     ylim([ceil(mx)-2 ceil(mx)]);
 
@@ -114,11 +124,12 @@ val = sum(Sx12, 2) + S112;
 
     plot(hAx, f, 10*log10(val), 'LineWidth', linewidth);
 
-    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], 1);
+    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], screen);
     xlabel(hAx, 'Frequency [GHz]');
     ylabel(hAx, '\Sigma_{i}|S_{1i}|^2 [dB]');
     hFig.Name = filename;
     hAx.LineWidth = axlinewidth;
+    xlim([12 32]);
     ylim([-1.5 0]);
 
 
@@ -149,11 +160,12 @@ phase = max(phase, [], 2) - min(phase, [], 2);
     plot(hAx, f, phase, 'LineWidth', linewidth);
     drawnow;
 
-    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], 1);
+    alignplot(hFig, nplotsX, nplotsY, hFig.Number, [], screen);
     xlabel(hAx, 'Frequency [GHz]');
     ylabel(hAx, 'Max phase difference [\circ]');
     hFig.Name = filename;
     hAx.LineWidth = axlinewidth;
+    xlim([12 32]);
     ylim([0 15]);
 %     ylim([0 5*ceil(max(values)/5)]);
     

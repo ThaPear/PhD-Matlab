@@ -38,15 +38,15 @@ slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown, walled);
 fs = 1e9 * (0.1:0.1:40);
 % ths = [eps 20 30 40 50 60] * pi/180;
 % phs = [0   0  0  0  0  0] * pi/180;
-ths = [eps 60 60] * pi/180;
-phs = [0   0  90] * pi/180;
+ths = [60 60] * pi/180;
+phs = [0  90] * pi/180;
 
 Zcap = 1 ./ (1j .* 2.*pi.*fs .* C);
 
 clrmap = lines(7);
 for(iangle = 1:length(ths))
     th = ths(iangle);
-    ph = phs(iangle);    
+    ph = phs(iangle);
     
     tc = tic;
     Zas = slot.GetInputImpedance(fs, th, ph);
@@ -57,30 +57,15 @@ for(iangle = 1:length(ths))
     Gamma = (ZasC - zfeed) ./ (ZasC + zfeed);
     VSWR = (1 + abs(Gamma)) ./ (1 - abs(Gamma));
     
-    [figS, axS] = figureex(7);
-    axS.ColorOrder = clrmap;
-%     if(iangle > 1)
-%         axS.ColorOrder = reshape(repmat(clrmap, 1, 2).', [], 14).';
-%     end
-    alignplot(figS, 8, 4, figS.Number, [], 1);
-    if(length(axS.Children) < 2)
-        patch(axS, [28 31 31 28], [-30 -30 0 0], [0 0 0], ...
-            'FaceAlpha', 0.1, 'EdgeColor', 'none');
-        patch(axS, [13.75 14.5 14.5 13.75], [-30 -30 0 0], [0 0 0], ...
-            'FaceAlpha', 0.1, 'EdgeColor', 'none');
-    end
-    [figZ, axZ] = figureex(8);
-        alignplot(figZ, 8, 4, figZ.Number, [], 1);
-        axZ.ColorOrder = reshape(repmat(clrmap, 1, 2).', [], 14).';
-        if(length(axZ.Children) < 2)
-            patch(axZ, [28 31 31 28], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            patch(axZ, [13.75 14.5 14.5 13.75], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            plot(axZ, [min(fs), max(fs)]./1e9, [zfeed, zfeed], 'k--');
-        end
+    [figS, axS] = a_figS(6);
+    [figZ, axZ] = a_figZ(7, fs, zfeed);
+    [figVSWR, axVSWR] = a_figVSWR(8);
+        axS.ColorOrder = clrmap(2:end, :);
+        axZ.ColorOrder = reshape(repmat(clrmap(2:end, :), 1, 2).', [], 12).';
+        axVSWR.ColorOrder = clrmap(2:end, :);
     
     plot(axS, fs/1e9, 20*log10(abs(Gamma)));
+    plot(axVSWR, fs/1e9, VSWR);
 
     plot(axZ, fs/1e9, real(ZasC));
     plot(axZ, fs/1e9, imag(ZasC), '--');
@@ -89,28 +74,16 @@ for(iangle = 1:length(ths))
     dispex('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
         th*180/pi, ph*180/pi, 20*log10(abs(Gamma(ind))), fs(ind)/1e9, real(ZasC(ind)), imag(ZasC(ind)));
     
-%     xlim(axS, [12 35]);
+    xlim(axS, [12 35]);
     ylim(axS, [-30 0]);
     xlim(axZ, [12 32]);
     ylim(axZ, [-100 200]);
-    xlabel(axS, 'Frequency [GHz]');
-    ylabel(axS, '|\Gamma| [dB]');
-    xlabel(axZ, 'Frequency [GHz]');
-    ylabel(axZ, 'Input Impedance [\Omega]');
-    
-    linewidth = 1;
-    axS.LineWidth = linewidth;
-    axZ.LineWidth = linewidth;
-    for(i = 1:length(axS.Children))
-        axS.Children(i).LineWidth = linewidth;
-    end
-    for(i = 1:length(axZ.Children))
-        axZ.Children(i).LineWidth = linewidth;
-    end
+    xlim(axVSWR, [12 32]);
+    ylim(axVSWR, [1 8]);
 end
 
-
-
+legend(axVSWR, axVSWR.Children(2:-1:1), {'H-plane 60\circ', 'E-plane 60\circ'});
+movelegend(axVSWR, 'n');
 
 
 

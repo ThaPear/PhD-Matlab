@@ -35,8 +35,10 @@ switch(iopt)
         end
 
         slab = TLine(tlines);
+        leg = 'Ideal';
     case 2
         slab = ChebyshevADS(p, gamma, z1, z2, N, f0match, f0design, 1);
+        leg = 'ADL';
 end
 
 
@@ -72,52 +74,30 @@ for(iangle = 1:length(ths))
     end
     
     if(iangle == 1 && iopt == 2)
-        [figS, axS] = figureex(1);
-        [figVSWR, axVSWR] = figureex(2);
+        [figS, axS] = a_figS(1);
+        [figVSWR, axVSWR] = a_figVSWR(2);
     else
-        [figS, axS] = figureex;
-        axS.ColorOrder = clrmap;
-        if(iangle > 1)
-            axS.ColorOrder = reshape(repmat(clrmap, 1, 2).', [], 14).';
-        end
-        alignplot(figS, 6, 4, figS.Number, [], 1);
-        if(length(axS.Children) < 2)
-            patch(axS, [28 31 31 28], [-30 -30 0 0], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            patch(axS, [13.75 14.5 14.5 13.75], [-30 -30 0 0], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-        end
+        [figS, axS] = a_figS;
         
-        [figVSWR, axVSWR] = figureex;
-        alignplot(figVSWR, 6, 4, figVSWR.Number, [], 1);
-        if(length(axVSWR.Children) < 2)
-            patch(axVSWR, [28 31 31 28], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            patch(axVSWR, [13.75 14.5 14.5 13.75], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-        end
+        [figVSWR, axVSWR] = a_figVSWR;
     end
-    axS.LineWidth = axlinewidth;
-    [figZ, axZ] = figureex;
-        alignplot(figZ, 6, 4, figZ.Number, [], 1);
-        axZ.ColorOrder = reshape(repmat(clrmap, 1, 2).', [], 14).';
-        if(length(axZ.Children) < 2)
-            patch(axZ, [28 31 31 28], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            patch(axZ, [13.75 14.5 14.5 13.75], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            plot(axZ, [min(fs), max(fs)]./1e9, [zfeed, zfeed], 'k--', 'LineWidth', linewidth);
-        end
-        axZ.LineWidth = axlinewidth;
+    [figZ, axZ] = a_figZ([], fs, zfeed);
     
     plot(axS, fs/1e9, 20*log10(abs(Ste.s11)), 'LineWidth', linewidth);
-    addlegendentry(axS, 'TE');
     plot(axVSWR, fs/1e9, VSWRte, 'LineWidth', linewidth);
-    addlegendentry(axVSWR, 'TE');
 
-    plot(axZ, fs/1e9, real(Zinte), 'LineWidth', linewidth);
-    addlegendentry(axZ, 'TE');
+    plotZ = plot(axZ, fs/1e9, real(Zinte), 'LineWidth', linewidth);
     plot(axZ, fs/1e9, imag(Zinte), '--', 'LineWidth', linewidth);
+    
+    if(iangle > 1)
+        addlegendentry(axS, 'TE');
+        addlegendentry(axVSWR, 'TE');
+        addlegendentry(axZ, plotZ, 'TE');
+    else
+        addlegendentry(axS, leg);
+        addlegendentry(axVSWR, leg);
+        addlegendentry(axZ, plotZ, leg);
+    end
     
     if(iangle > 1)
         isTE = 0;
@@ -130,7 +110,7 @@ for(iangle = 1:length(ths))
         plot(axS, fs/1e9, 20*log10(abs(Stm.s11)), '--', 'LineWidth', linewidth);
         addlegendentry(axS, 'TM');
         plot(axVSWR, fs/1e9, VSWRtm, 'LineWidth', linewidth);
-        addlegendentry(axVSWR, 'TE');
+        addlegendentry(axVSWR, 'TM');
 
         plot(axZ, fs/1e9, real(Zintm), 'LineWidth', linewidth);
         addlegendentry(axZ, 'TM');
@@ -141,30 +121,9 @@ for(iangle = 1:length(ths))
     xlim(axZ, [12 35]);
     ylim(axZ, [-100 200]);
     xlim(axVSWR, [12 35]);
-    ylim(axVSWR, [1 4]);
-    xlabel(axS, 'Frequency [GHz]');
-    ylabel(axS, '|\Gamma| [dB]');
-    xlabel(axZ, 'Frequency [GHz]');
-    ylabel(axZ, 'Input Impedance [\Omega]');
-    xlabel(axVSWR, 'Frequency [GHz]');
-    ylabel(axVSWR, 'VSWR');
-    
-    linewidth = 1;
-    axS.LineWidth = linewidth;
-    axZ.LineWidth = linewidth;
-    axVSWR.LineWidth = linewidth;
-    for(i = 1:length(axS.Children))
-        axS.Children(i).LineWidth = linewidth;
-    end
-    for(i = 1:length(axZ.Children))
-        axZ.Children(i).LineWidth = linewidth;
-    end
-    for(i = 1:length(axVSWR.Children))
-        axVSWR.Children(i).LineWidth = linewidth;
-    end
+    ylim(axVSWR, [1 8]);
 end
 end
-
 
 
 

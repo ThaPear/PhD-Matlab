@@ -33,6 +33,9 @@ slab = ChebyshevADS(p, gamma, z1, z2, N, f0match, f0design, 1);
 tlineup = TerminatedTLine(slab, FreeSpace());
 tlinedown = ShortedLine(erback, hback, erback);
 
+dx = p;
+dy = p;
+
 % The slot.
 if(~dualpol)
     slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown, walled);
@@ -68,8 +71,8 @@ ths = [eps 60 60] * pi/180;
 phs = [0   0  90] * pi/180;
 
 
-folder = [cd, '\Report\', mfilename, '\'];
-mkdir(folder);
+folder = ['e:\ Report\', mfilename, '\'];
+[~, ~] = mkdir(folder);
 
 clrmap = lines(7);
 for(iangle = 1:length(ths))
@@ -80,6 +83,7 @@ for(iangle = 1:length(ths))
     
     filepath = [folder, filename, '.cst'];
     if(~exist(filepath, 'file'))
+        dispex('Building simulation...'); tc = tic;
         ea_CST_Build;
         
         project.StoreParameter(CST.Defaults.ThetaName, params.th * 180/pi);
@@ -89,8 +93,10 @@ for(iangle = 1:length(ths))
         end
     
         project.SaveAs(filepath, 0);
-        project.Quit();
+        fprintf(' Done. Took %.1fs.\n', toc(tc));
         pause(5);
+        project.Quit();
+        pause(10);
     end
     if(~dualpol)
         touchstonefile = [filepath(1:end-4), '.s1p'];
@@ -98,16 +104,14 @@ for(iangle = 1:length(ths))
         touchstonefile = [filepath(1:end-4), '.s2p'];
     end
     if(~exist(touchstonefile, 'file'))
+        dispex('Simulating...'); tc = tic;
         project = CST.Application.OpenFile(filepath);
         dsproject = CST.Application.ActiveDS();
         
+        project.Rebuild();
+        
         fdsolver = project.FDSolver();
-        fdsolver.Start();
-%         dsproject.UpdateResults();
-%         dsproject.Save();
-%         dsproject.TouchstoneExport('Tasks\SPara1\S-Parameters\S1,1', [filepath(1:end-3), 's1p'], zfeed);
-%         dsproject.SelectTreeItem('Tasks\SPara1\S-Parameters\S1,1');
-%         project.SelectTreeItem('1D Results\S-Parameters\S1,1');
+        if(~fdsolver.Start()); disp('Simulation failed.'); return; end
         
         touchstone = project.Touchstone();
         touchstone.Reset();
@@ -118,6 +122,7 @@ for(iangle = 1:length(ths))
     
         project.Save();
         project.Quit();
+        fprintf(' Done. Took %.1fs.\n', toc(tc));
     end
     
     [parameters, S] = CST.LoadData(touchstonefile);
@@ -134,35 +139,18 @@ for(iangle = 1:length(ths))
     Gamma = (ZasC - zfeed) ./ (ZasC + zfeed);
     VSWR = (1 + abs(Gamma)) ./ (1 - abs(Gamma));
     
-    [figS, axS] = figureex(7);
-    axS.ColorOrder = clrmap;
-%     if(iangle > 1)
-%         axS.ColorOrder = reshape(repmat(clrmap, 1, 2).', [], 14).';
-%     end
-    alignplot(figS, 8, 4, figS.Number, [], 1);
-    if(length(axS.Children) < 2)
-        patch(axS, [28 31 31 28], [-30 -30 0 0], [0 0 0], ...
-            'FaceAlpha', 0.1, 'EdgeColor', 'none');
-        patch(axS, [13.75 14.5 14.5 13.75], [-30 -30 0 0], [0 0 0], ...
-            'FaceAlpha', 0.1, 'EdgeColor', 'none');
-    end
-    [figZ, axZ] = figureex(8);
-        alignplot(figZ, 8, 4, figZ.Number, [], 1);
-        axZ.ColorOrder = reshape(repmat(clrmap, 1, 2).', [], 14).';
-        if(length(axZ.Children) < 2)
-            patch(axZ, [28 31 31 28], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            patch(axZ, [13.75 14.5 14.5 13.75], [-1e3 -1e3 1e3 1e3], [0 0 0], ...
-                'FaceAlpha', 0.1, 'EdgeColor', 'none');
-            plot(axZ, [min(fs), max(fs)]./1e9, [zfeed, zfeed], 'k--');
-        end
+    [figS, axS] = a_figS(6);
+    [figZ, axZ] = a_figZ(7, fs, zfeed);
+    [figVSWR, axVSWR] = a_figVSWR(8);
     
     plot(axS, fs/1e9, 20*log10(abs(Gamma)));
 
     plot(axZ, fs/1e9, real(ZasC));
     plot(axZ, fs/1e9, imag(ZasC), '--');
+    
+    plot(axVSWR, fs/1e9, VSWR);
 
-    ind = find(20*log10(abs(Gamma)) == max(20*log10(abs(Gamma(fs >= 13.75e9 & fs <= 14.5e9 | fs >= 28e9 & fs <= 31e9)))));
+    ind = find(20*log10(abs(Gamma)) == max(20*log10(abs(Gamma(fs >= 13.75e9 & fs <= 14.5e9 | fs >= 28e9 & fs <= 31e9)))), 1);
     dispex('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
         params.th*180/pi, params.ph*180/pi, 20*log10(abs(Gamma(ind))), fs(ind)/1e9, real(ZasC(ind)), imag(ZasC(ind)));
     
@@ -170,25 +158,12 @@ for(iangle = 1:length(ths))
     ylim(axS, [-30 0]);
     xlim(axZ, [12 32]);
     ylim(axZ, [-100 200]);
-    xlabel(axS, 'Frequency [GHz]');
-    ylabel(axS, '|\Gamma| [dB]');
-    xlabel(axZ, 'Frequency [GHz]');
-    ylabel(axZ, 'Input Impedance [\Omega]');
-    
-    linewidth = 1;
-    axS.LineWidth = linewidth;
-    axZ.LineWidth = linewidth;
-    for(i = 1:length(axS.Children))
-        axS.Children(i).LineWidth = linewidth;
-    end
-    for(i = 1:length(axZ.Children))
-        axZ.Children(i).LineWidth = linewidth;
-    end
-    drawnow
+    xlim(axVSWR, [12 32]);
+    ylim(axVSWR, [1 8]);
 end
 
-
-
+legend(axVSWR, axVSWR.Children(3:-1:1), {'Broadside', 'H-plane 60\circ', 'E-plane 60\circ'});
+movelegend(axVSWR, 'n');
 
 
 
