@@ -16,15 +16,20 @@ classdef TerminatedTLine < Element
             ABCD = this.tline.GetABCD(isTE, f, k0, kr);
             
             Zmat = ABCD2Z(ABCD);
-            
-            
+
+
             ZL = this.terminator.GetInputImpedance(isTE, f, k0, kr);
-            
+
             % Convert Z-matrix with load into input impedance.
             Zin = Zmat.z11 - (Zmat.z12 .* Zmat.z21) ./ (Zmat.z22 + ZL);
 %             zout = Zmat.z22 - (Zmat.z12 .* Zmat.z21) ./ (Zmat.z11 + ZL);
-            if(max(isnan(Zin)))
-                breakpoint;
+
+            % Handle identity ABCD matrices.
+            ind = ABCD.isidentity();
+            Zin(ind) = ZL(ind);
+            
+            if(any(isnan(Zin)))
+%                 breakpoint;
             end
         end
         

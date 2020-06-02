@@ -64,7 +64,6 @@ classdef Slot
             
             this.numM = 10;
         end
-        
         function Zas = GetInputImpedance(this, fs, th, ph)
             this.numM = 7;
             %% Modes
@@ -125,7 +124,6 @@ classdef Slot
                 Zas(fi) = Za;
             end
         end
-        
         function [krhos, k0, Dinfups, Dinfdowns, Iteups, Itmups, Itedowns, Itmdowns] = GetDinf(this, f)
             %             f = 10.6e9;
             th = eps*pi/180;
@@ -216,11 +214,9 @@ classdef Slot
 %             figureex(105); plot(kxs/k0, abs(Dinfdowns)); title('dinfdown');
 %             figureex(106); plot(kxs/k0, abs(Dinfdowns+Dinfups)); title('sum');
         end
-        
         function h = GetHeight(~)
             h = 0;
         end
-        
         function BuildCST(this, project)
             project.StoreParameter('slot_width', this.wslot*1e3);
             project.StoreParameter('slot_feedlength', this.dslot*1e3/2);

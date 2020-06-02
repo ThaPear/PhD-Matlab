@@ -10,8 +10,8 @@ classdef Nothing < Element
                    '\tUse a shunt element or an open/shorted/terminated line.'], mfilename);
         end
         function ABCD = GetABCD(this, isTE, f, k0, kr)
-            ABCD = ABCDMatrix(1, 0, ...
-                              0, 1);
+            ABCD = ABCDMatrix( ones(size(f)), zeros(size(f)), ...
+                              zeros(size(f)),  ones(size(f)));
         end
         function h = GetHeight(this)
             h = 0;
