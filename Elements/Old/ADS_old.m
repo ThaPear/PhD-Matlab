@@ -44,13 +44,13 @@ classdef ADS < TLine
             
             elements = {}; % Start with an empty transmission line.
             if(N == 1)
-                elements = [elements, {Line(erhosts(1), ds(1))}];
+                elements = [elements, {Line(ds(1), erhosts(1))}];
                 elements = [elements, {ADL(p,                   ... % p
                                     inf, inf,                   ... % d(n-1,n) , d(n,n+1)
                                     0, 0,                       ... % s(n-1,n), s(n,n+1)
                                     0, ws(1), 0,                ... % w(n-1), w(n), w(n+1)
                                     erhosts(1), erhosts(2))}];      % er(n-1,n), er(n,n+1)
-                elements = [elements, {Line(erhosts(2), ds(2))}];
+                elements = [elements, {Line(ds(2), erhosts(2))}];
             else
 %                 ADL(p, 
 %                 dprev, dnext, 
@@ -58,13 +58,13 @@ classdef ADS < TLine
 %                 wprev, w, wnext,
 %                 erhostdown, erhostup)
                 %% First layer
-                elements = [elements, {Line(erhosts(1), ds(1))}];
+                elements = [elements, {Line(ds(1), erhosts(1))}];
                 elements = [elements, {ADL(p,                   ... % p
                                     inf, ds(2),                 ... % d(n-1,n) , d(n,n+1)
                                     0, ss(1),                   ... % s(n-1,n), s(n,n+1)
                                     0, ws(1), ws(2),            ... % w(n-1), w(n), w(n+1)
                                     erhosts(1), erhosts(2))}];      % er(n-1,n), er(n,n+1)
-                elements = [elements, {Line(erhosts(2), ds(2))}]; 
+                elements = [elements, {Line(ds(2), erhosts(2))}]; 
 
                 %% Middle layers
                 for(n = 2:N-1)
@@ -73,7 +73,7 @@ classdef ADS < TLine
                                         ss(n-1), ss(n),         ... % s(n-1,n), s(n,n+1)
                                         ws(n-1), ws(n), ws(n+1),... % w(n-1), w(n), w(n+1)
                                         erhosts(n), erhosts(n+1))}];% er(n-1,n), er(n,n+1)
-                    elements = [elements, {Line(erhosts(n+1), ds(n+1))}]; 
+                    elements = [elements, {Line(ds(n+1), erhosts(n+1))}]; 
                 end
                 
                 %% Final layer
@@ -83,7 +83,7 @@ classdef ADS < TLine
                                     ws(end-1), ws(end), 0,      ... % w(n-1), w(n), w(n+1)
                                     erhosts(end-1), erhosts(end))}];
                 % Half-width line on the end.
-                elements = [elements, {Line(erhosts(end), ds(end))}];
+                elements = [elements, {Line(ds(end), erhosts(end))}];
             end
             
             this.elements = elements;

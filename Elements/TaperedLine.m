@@ -26,7 +26,7 @@ classdef TaperedLine < TLine
             elements = cell(1,N);
             for(n = 1:N)
                 er = ers(n);
-                elements{n} = Line(er, L/N ./ sqrt(er));
+                elements{n} = Line(L/N ./ sqrt(er), er);
             end
             this.elements = elements;
         end

@@ -5,7 +5,7 @@ classdef Line_Trenched_Bowtie < Line
     end
     methods
         function this = Line_Trenched_Bowtie(er, L, erreal)
-            this@Line(er, L);
+            this@Line(L, er);
             
             this.erreal = erreal;
         end

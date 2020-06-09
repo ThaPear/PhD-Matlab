@@ -49,7 +49,7 @@ classdef StagedADS_Real < StagedADS
                         doublespaceinfirstlayer = isempty(prevlayer);
                         adss{n} = DesignADS_Real(f0, p, h, er, prevlayer, nextlayer, doublespaceinfirstlayer);
                     else
-                        adss{n} = Line(ers(n), h);
+                        adss{n} = Line(h, ers(n));
                     end
                     
 %                     dispex('Designed layer %i in %fs, used %i layers.\n', n, dt, (length(adss{n}.elements)-1)/2);

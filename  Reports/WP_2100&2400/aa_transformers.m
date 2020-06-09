@@ -57,7 +57,7 @@ for(iopt = 1:4)
     for(i = 1:length(Zs))
         er = (z0 / Zs(i))^2;
         l = L/N / sqrt(er);
-        tlines = [tlines, {Line(er, l)}];
+        tlines = [tlines, {Line(l, er)}];
     end
 
     slab = TLine(tlines);

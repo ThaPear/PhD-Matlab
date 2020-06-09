@@ -31,7 +31,7 @@ switch(iopt)
         for(i = 1:N)
             er = (z0 / Zs(i))^2;
             L = (c0/f0match)/4 / sqrt(er);
-            tlines = [tlines, {Line(er, L)}]; %#ok<AGROW>
+            tlines = [tlines, {Line(L, er)}]; %#ok<AGROW>
         end
 
         slab = TLine(tlines);

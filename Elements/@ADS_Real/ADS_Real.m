@@ -37,9 +37,9 @@ classdef ADS_Real < ADS
             if(NADL == 1)
                 % Foam-Glue-Metal-Substrate-Glue-Foam
                 % Foam
-                elements = [elements, {Line(Materials.Foam.permittivity, ds(1) - Materials.Glue.thickness)}];
+                elements = [elements, {Line(ds(1) - Materials.Glue.thickness, Materials.Foam.permittivity)}];
                 % Glue
-                elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                 % Metal
                 elements = [elements, {ADL_Real(p,                   ... % p
                                     inf, inf,                   ... % d(n-1,n) , d(n,n+1)
@@ -47,11 +47,11 @@ classdef ADS_Real < ADS
                                     0, ws(1), 0,                ... % w(n-1), w(n), w(n+1)
                                     Materials.Foam.permittivity, Materials.Foam.permittivity)}];      % er(n-1,n), er(n,n+1)
                 % Substrate
-                elements = [elements, {Line(Materials.ADLSubstrate.permittivity, Materials.ADLSubstrate.thickness)}];
+                elements = [elements, {Line(Materials.ADLSubstrate.thickness, Materials.ADLSubstrate.permittivity)}];
                 % Glue
-                elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                 % Foam
-                elements = [elements, {Line(Materials.Foam.permittivity, ds(2) - Materials.Glue.thickness  - Materials.ADLSubstrate.thickness)}];
+                elements = [elements, {Line(ds(2) - Materials.Glue.thickness  - Materials.ADLSubstrate.thickness, Materials.Foam.permittivity)}];
             else
 %                 ADL_Real(p, 
 %                 dprev, dnext, 
@@ -60,9 +60,9 @@ classdef ADS_Real < ADS
 %                 erhostdown, erhostup)
                 % First layer
                 % Foam
-                elements = [elements, {Line(Materials.Foam.permittivity, ds(1) - Materials.Glue.thickness)}];
+                elements = [elements, {Line(ds(1) - Materials.Glue.thickness, Materials.Foam.permittivity)}];
                 % Glue
-                elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                 % Metal
                 elements = [elements, {ADL_Real(p,                   ... % p
                                     inf, ds(2),                 ... % d(n-1,n) , d(n,n+1)
@@ -70,16 +70,16 @@ classdef ADS_Real < ADS
                                     0, ws(1), ws(2),            ... % w(n-1), w(n), w(n+1)
                                     Materials.Foam.permittivity, Materials.Foam.permittivity)}];      % er(n-1,n), er(n,n+1)
                 % Substrate
-                elements = [elements, {Line(Materials.ADLSubstrate.permittivity, Materials.ADLSubstrate.thickness)}];
+                elements = [elements, {Line(Materials.ADLSubstrate.thickness, Materials.ADLSubstrate.permittivity)}];
                 % Glue
-                elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                 % Foam
-                elements = [elements, {Line(Materials.Foam.permittivity, ds(2) - Materials.Glue.thickness - Materials.ADLSubstrate.thickness)}]; 
+                elements = [elements, {Line(ds(2) - Materials.Glue.thickness - Materials.ADLSubstrate.thickness, Materials.Foam.permittivity)}]; 
 
                 % Middle layers
                 for(n = 2:NADL-1)
                     % Glue
-                    elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                    elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                     % Metal
                     elements = [elements, {ADL_Real(p,               ... % p
                                         ds(n), ds(n+1),         ... % d(n-1,n), d(n,n+1)
@@ -87,15 +87,15 @@ classdef ADS_Real < ADS
                                         ws(n-1), ws(n), ws(n+1),... % w(n-1), w(n), w(n+1)
                                         Materials.Foam.permittivity, Materials.Foam.permittivity)}];% er(n-1,n), er(n,n+1)
                     % Substrate
-                    elements = [elements, {Line(Materials.ADLSubstrate.permittivity, Materials.ADLSubstrate.thickness)}];
+                    elements = [elements, {Line(Materials.ADLSubstrate.thickness, Materials.ADLSubstrate.permittivity)}];
                     % Glue
-                    elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                    elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                     % Foam
-                    elements = [elements, {Line(Materials.Foam.permittivity, ds(n+1) - 2*Materials.Glue.thickness - Materials.ADLSubstrate.thickness)}]; 
+                    elements = [elements, {Line(ds(n+1) - 2*Materials.Glue.thickness - Materials.ADLSubstrate.thickness, Materials.Foam.permittivity)}]; 
                 end
                 
                 % Glue
-                elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                 % Final layer
                 elements = [elements, {ADL_Real(p,              ... % p
                                     ds(end-1), inf,             ... % d(n-1,n), d(n,n+1)
@@ -103,11 +103,11 @@ classdef ADS_Real < ADS
                                     ws(end-1), ws(end), 0,      ... % w(n-1), w(n), w(n+1)
                                     Materials.Foam.permittivity, Materials.Foam.permittivity)}];
                 % Substrate
-                elements = [elements, {Line(Materials.ADLSubstrate.permittivity, Materials.ADLSubstrate.thickness)}];
+                elements = [elements, {Line(Materials.ADLSubstrate.thickness, Materials.ADLSubstrate.permittivity)}];
                 % Glue
-                elements = [elements, {Line(Materials.Glue.permittivity, Materials.Glue.thickness)}];
+                elements = [elements, {Line(Materials.Glue.thickness, Materials.Glue.permittivity)}];
                 % Foam - Half-width line on the end.
-                elements = [elements, {Line(Materials.Foam.permittivity, ds(end) - 2*Materials.Glue.thickness - Materials.ADLSubstrate.thickness)}];
+                elements = [elements, {Line(ds(end) - 2*Materials.Glue.thickness - Materials.ADLSubstrate.thickness, Materials.Foam.permittivity)}];
             end
             
             this.elements = elements;

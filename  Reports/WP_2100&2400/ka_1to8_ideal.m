@@ -16,11 +16,11 @@ Zs = fliplr(Zs) ./ [8 4 4 2 1]
 ers = (z0 ./ Zs).^2;
 
 if(1)
-    line1 = Line(ers(1), lam0/4 / sqrt(ers(1)));
-    line2 = Line(ers(2), lam0/4 / sqrt(ers(2)));
-    line3 = Line(ers(3), lam0/4 / sqrt(ers(3)));
-    line4 = Line(ers(4), lam0/4 / sqrt(ers(4)));
-    line5 = Line(ers(5), lam0/4 / sqrt(ers(5)));
+    line1 = Line(lam0/4 / sqrt(ers(1)), ers(1));
+    line2 = Line(lam0/4 / sqrt(ers(2)), ers(2));
+    line3 = Line(lam0/4 / sqrt(ers(3)), ers(3));
+    line4 = Line(lam0/4 / sqrt(ers(4)), ers(4));
+    line5 = Line(lam0/4 / sqrt(ers(5)), ers(5));
     line5t = TerminatedTLine(line5, Impedance(80));
 
     lines = {line1, Shunt(TLine({line2, line3, Shunt(TLine({line4, Shunt(TLine({line5t})), ...
@@ -35,7 +35,7 @@ if(1)
 else
     lines = {};
     for(i = 1:length(Zs))
-        lines = [lines, {Line(ers(i), lam0/4 / sqrt(ers(i)))}];
+        lines = [lines, {Line(lam0/4 / sqrt(ers(i)), ers(i))}];
     end
     line = TLine(lines);
 end
