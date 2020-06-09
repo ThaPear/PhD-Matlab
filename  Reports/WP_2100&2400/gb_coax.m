@@ -141,7 +141,7 @@ for(iangle = 1:length(ths))
         fdsolver = project.FDSolver();
         if(~fdsolver.Start()); disp('Simulation failed.'); return; end
         
-        touchstone = project.Touchstone();
+        touchstone = project.TOUCHSTONE();
         touchstone.Reset();
         touchstone.Impedance(zfeed);
         touchstone.Renormalize(1);

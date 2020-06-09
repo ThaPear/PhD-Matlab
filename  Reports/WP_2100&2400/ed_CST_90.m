@@ -106,7 +106,7 @@ for(iangle = 1:length(ths))
 %         dsproject.SelectTreeItem('Tasks\SPara1\S-Parameters\S1,1');
 %         project.SelectTreeItem('1D Results\S-Parameters\S1,1');
         
-        touchstone = project.Touchstone();
+        touchstone = project.TOUCHSTONE();
         touchstone.Reset();
         touchstone.Impedance(zfeed);
         touchstone.Renormalize(1);
