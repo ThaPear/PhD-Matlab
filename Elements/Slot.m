@@ -65,7 +65,7 @@ classdef Slot
             this.numM = 10;
         end
         function Zas = GetInputImpedance(this, fs, th, ph)
-            this.numM = 7;
+            this.numM = 10;
             %% Modes
             mx_lin = [-this.numM:this.numM];
             my_lin = mx_lin;
