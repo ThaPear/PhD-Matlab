@@ -1,4 +1,4 @@
-classdef FiniteArray_NoPrecompute < handle
+classdef FiniteArray < handle
     properties
         unitcell  % Unit cell in the finite array
         
@@ -14,7 +14,7 @@ classdef FiniteArray_NoPrecompute < handle
         D_fs  % Frequencies for precomputed Ds
     end
     methods
-        function this = FiniteArray_NoPrecompute(unitcell, Nx, Ny, dedge, zfeed)
+        function this = FiniteArray(unitcell, Nx, Ny, dedge, zfeed)
             this.unitcell = unitcell;
             this.Nx = Nx;
             this.Ny = Ny;
@@ -23,6 +23,9 @@ classdef FiniteArray_NoPrecompute < handle
             
         end
         function InitializeZMatrix(this, fs)
+            if(isempty(this.Ds) || ~isempty(setdiff(fs, this.D_fs)))
+                this.PrecomputeDs(fs);
+            end
             tc = tic;
             
             Nf = length(fs);
@@ -49,6 +52,7 @@ classdef FiniteArray_NoPrecompute < handle
             afterEach(hDataQueue, @updateWaitbar);
             
             Zmat_ = zeros((Nx_+2)*Ny_, (Nx_+2)*Ny_, Nf);
+            global fi;
             for(fi = 1:Nf)
                 f = fs(fi);
 %                 dispex('%i / %i.\n', fi, length(fs));
@@ -110,7 +114,7 @@ classdef FiniteArray_NoPrecompute < handle
                     
                     z = -dy./(2*pi).* ...
                         integral(...
-                            @(kx) Z_Integrand_kx(f, dy, k0, kx, tlineup, tlinedown, z0, wslot, Ny_, ny, nyp, x, xp, F, Fp), ...
+                            @(kx) Z_Integrand_kx(this, f, dy, kx, Ny_, ny, nyp, x, xp, F, Fp), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     Z(in) = z;
                     
@@ -130,7 +134,78 @@ classdef FiniteArray_NoPrecompute < handle
                      sprintf('%i/%i impedances done.', progress, N)});
             end
             delete(hWaitbar);
+            
             toc(tc);
+        end
+        function PrecomputeDs(this, fs)
+            Nf = length(fs);
+            Ny_ = this.Ny;
+            
+            dy = this.unitcell.dy;
+            wslot = this.unitcell.wslot;
+            tlineup = this.unitcell.tlineup;
+            tlinedown = this.unitcell.tlinedown;
+            
+            z0 = Constants.z0;
+            c0 = Constants.c0;
+            
+            %% Initialize progress bar
+            hDataQueue = parallel.pool.DataQueue;
+            hWaitbar = waitbar(0, {'0% Initializing...', '', ''});
+            afterEach(hDataQueue, @updateWaitbar);
+            
+            newfs = setdiff(fs, this.D_fs);
+            Nf = length(newfs);
+            for(fi = 1:Nf)
+                f = newfs(fi);
+                k0 = 2*pi*f / c0;
+                
+                % Go to +-inf
+                delta = 0.01.*k0;
+                lim1 = -100.*k0-1j.*delta;
+                lim2 = -lim1;
+                % Deform integration path around branch cuts.
+                integrationpath = [(-1-1j).*delta, (1+1j).*delta];
+                
+                kx = [linspace(lim1, integrationpath(1), 2950), ...
+                      linspace(integrationpath(1), integrationpath(2), 102), ...
+                      linspace(integrationpath(2), lim2, 2950)];
+                % Remove the duplicate elements
+                kx(2951) = [];
+                kx(end-2950) = [];
+                
+                N = length(kx);
+                
+                progress = -100; send(hDataQueue, nan);
+                
+                D = zeros(length(kx), Ny_);
+                parfor(kxi = 1:length(kx))
+                    D_ = zeros(1, Ny_);
+                    for(nypp = 0:Ny_-1)
+                        D_(nypp+1) = integral(...
+                            @(kyp) D_Integrand_kyp(f, dy, k0, kyp, kx(kxi), tlineup, tlinedown, z0, wslot, nypp), ...
+                            lim1, lim2, 'Waypoints', integrationpath);
+                    end
+                    D(kxi, :) = D_;
+                    if(~mod(kxi, 100))
+                        send(hDataQueue, nan); % Update progress bar
+                    end
+                end
+                
+                fii = length(this.Ds)+1;
+                this.Ds{fii} = D;
+                this.D_fs(fii) = f;
+                this.D_kxs{fii} = real(kx);
+            end
+            
+            function updateWaitbar(~)
+                progress = progress + 100;
+                waitbar(((fi-1)*N+progress)/(Nf*N), hWaitbar, ...
+                    {sprintf('%.1f%% Precomputing D...', ((fi-1)*N+progress)/(Nf*N)*100), ...
+                     sprintf('%i/%i frequencies done.', fi-1, Nf), ...
+                     sprintf('%i/%i kxs done.', progress, N)});
+            end
+            delete(hWaitbar);
         end
         function Zas = GetInputImpedance(this, fs, excitation)
             if(size(excitation, 1) ~= this.Nx || size(excitation, 2) ~= this.Ny)
@@ -169,25 +244,21 @@ classdef FiniteArray_NoPrecompute < handle
     end
 end
 
-function v = Z_Integrand_kx(f, dy, k0, kx, tlineup, tlinedown, z0, wslot, Ny_, ny, nyp, x, xp, F, Fp)
-%     global D_kxs fi;
-%     D_kxs{fi} = unique([D_kxs{fi}, kx]);
-    D = zeros(length(kx), Ny_);
+function v = Z_Integrand_kx(this, f, dy, kx, Ny_, ny, nyp, x, xp, F, Fp)
+    % Retrieve the D matrix for this frequency
+    fii = find(this.D_fs == f, 1);
+    Ds = this.Ds{fii};
+    D_kxs = this.D_kxs{fii};
+    
+    % Interpolate the D matrix at the desired kx
+    D = interp1(D_kxs, Ds, real(kx));
     int2 = zeros(1, length(kx));
     for(kxi = 1:length(kx))
-        for(nypp = 0:Ny_-1)
-            % Go to +-inf
-            delta = 0.01.*k0;
-            lim1 = -100.*k0-1j.*delta;
-            lim2 = -lim1;
-            % Deform integration path around branch cuts.
-            integrationpath = [(-1-1j).*delta, (1+1j).*delta];
-            D(kxi, nypp+1) = integral(...
-                @(kyp) D_Integrand_kyp(f, dy, k0, kyp, kx(kxi), tlineup, tlinedown, z0, wslot, nypp), ...
-                lim1, lim2, 'Waypoints', integrationpath);
+        if(Ny_ == 1) % Indexing D(kxi, :) fails when Ny_ is 1.
+            int2(kxi) = integral(@(ky) Z_Integrand_ky(ky, Ny_, ny, nyp, dy, D(kxi)), -pi/dy, pi./dy);
+        else
+            int2(kxi) = integral(@(ky) Z_Integrand_ky(ky, Ny_, ny, nyp, dy, D(kxi, :)), -pi/dy, pi./dy);
         end
-
-        int2(kxi) = integral(@(ky) Z_Integrand_ky(ky, Ny_, ny, nyp, dy, D(kxi, :)), -pi/dy, pi./dy);
     end
     v = int2 .* Fp(kx) .* F(-kx) .* exp(-1j .* kx .* (x-xp));
     return
