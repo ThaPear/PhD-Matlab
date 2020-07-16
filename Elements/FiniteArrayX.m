@@ -1,6 +1,9 @@
 classdef FiniteArrayX < handle
     properties
-        unitcell % Unit cell in the finite array.
+        unitcell % Unit cell in the finite array
+        
+        tlineup   % Stratification above the array
+        tlinedown % Stratification below the array
         
         Nx % Number of unit cells.
         ax % Excitation amplitude vector
@@ -10,8 +13,10 @@ classdef FiniteArrayX < handle
         numM % Number of modes to sum (-numM:numM). Default -10:10.
     end
     methods
-        function this = FiniteArrayX(unitcell, Nx, ax, dedge, zfeed)
+        function this = FiniteArrayX(unitcell, tlineup, tlinedown, Nx, ax, dedge, zfeed)
             this.unitcell = unitcell;
+            this.tlineup = tlineup;
+            this.tlinedown = tlinedown;
             this.Nx = Nx;
             this.dedge = dedge;
             this.zfeed = zfeed;
@@ -39,8 +44,8 @@ classdef FiniteArrayX < handle
             dy = this.unitcell.dy;
             wslot = this.unitcell.wslot;
             dslot = this.unitcell.dslot;
-            tlineup = this.unitcell.tlineup;
-            tlinedown = this.unitcell.tlinedown;
+            tlineup_ = this.tlineup;
+            tlinedown_ = this.tlinedown;
             walled = this.unitcell.walled;
             
             z0 = Constants.z0;
@@ -82,7 +87,7 @@ classdef FiniteArrayX < handle
                 Z1n = zeros(1,Nx_);
                 Z1n(1) = -1./(2*pi) .* integral(...
                     @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                 Ffeed, Ffeed, tlineup, tlinedown, xi, xj), ...
+                                                 Ffeed, Ffeed, tlineup_, tlinedown_, xi, xj), ...
                     lim1, lim2, 'Waypoints', integrationpath);
                 
                 % Edge to itself
@@ -90,7 +95,7 @@ classdef FiniteArrayX < handle
                 xj = 1 .* dx - dedge_; % 1 result
                 Zrr = -1./(2*pi) .* integral(...
                     @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                 Fedge, Fedge, tlineup, tlinedown, xi, xj), ...
+                                                 Fedge, Fedge, tlineup_, tlinedown_, xi, xj), ...
                     lim1, lim2, 'Waypoints', integrationpath);
                 
                 %% Mutual impedances
@@ -107,7 +112,7 @@ classdef FiniteArrayX < handle
                     xj = j .* dx;
                     Z1n(j) = -1./(2*pi) .* integral(...
                         @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                     Ffeed, Ffeed, tlineup, tlinedown, xi, xj), ...
+                                                     Ffeed, Ffeed, tlineup_, tlinedown_, xi, xj), ...
                         lim1, lim2, 'Waypoints', integrationpath);
                 end
                 % Edge to feed
@@ -117,7 +122,7 @@ classdef FiniteArrayX < handle
                     xj = j .* dx;
                     Zrn(j) = -1./(2*pi) .* integral(...
                         @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                     Fedge, Ffeed, tlineup, tlinedown, xi, xj), ...
+                                                     Fedge, Ffeed, tlineup_, tlinedown_, xi, xj), ...
                         lim1, lim2, 'Waypoints', integrationpath);
                 end
                 % Edge to edge
@@ -125,7 +130,7 @@ classdef FiniteArrayX < handle
                 xj = Nx_ .* dx + dedge_; % 1 result
                 Zrl = -1./(2*pi) .* integral(...
                     @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                 Fedge, Fedge2, tlineup, tlinedown, xi, xj), ...
+                                                 Fedge, Fedge2, tlineup_, tlinedown_, xi, xj), ...
                     lim1, lim2, 'Waypoints', integrationpath);
                 
                 %% Fill toeplitz Z matrix

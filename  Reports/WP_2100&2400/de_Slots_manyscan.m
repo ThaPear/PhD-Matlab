@@ -31,8 +31,9 @@ tlineup = TerminatedTLine(slab, FreeSpace());
 tlinedown = ShortedLine(erback, hback, erback);
 
 % The slot.
-slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown, walled);
-% slot = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot, tlineup, tlinedown);
+slot = Slot(dx, dy, wslot, dslot, walled);
+% slot = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot);
+array = InfiniteArray(slot, tlineup, tlinedown);
 
 %% Perform simulation.
 fs = 1e9 * (0.1:0.1:40);
@@ -50,7 +51,7 @@ for(iangle = 1:length(ths))
     ph = phs(iangle);    
     
     tc = tic;
-    Zas = slot.GetInputImpedance(fs, th, ph);
+    Zas = array.GetInputImpedance(fs, th, ph);
 %     dispex('Calculated input impedance in %.3fs.\n', toc(tc));
     ZasC = Zas + Zcap; % With series capacitance.
     
@@ -83,12 +84,12 @@ end
 % legend(axVSWR, axVSWR.Children(3:-1:1), {'Broadside', 'H-plane 60\circ', 'E-plane 60\circ'});
 % movelegend(axVSWR, 'n');
 %%
-[hFig, hAx] = figureex(3);
-legend(hAx, hAx.Children(7:-1:1), strcat({'\theta = '}, strsplit(num2str(0:10:60)), '\circ'));
-movelegend(hAx, 'eneo');
-hAx.Position(3) = 0.01;
-
-close([4 6:7 9:10])
+% [hFig, hAx] = figureex(3);
+% legend(hAx, hAx.Children(7:-1:1), strcat({'\theta = '}, strsplit(num2str(0:10:60)), '\circ'));
+% movelegend(hAx, 'eneo');
+% hAx.Position(3) = 0.01;
+% 
+% close([4 6:7 9:10])
 
 
 

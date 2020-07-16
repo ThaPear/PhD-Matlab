@@ -1,6 +1,9 @@
 classdef FiniteArrayY
     properties
-        unitcell % Unit cell in the finite array.
+        unitcell % Unit cell in the finite array
+        
+        tlineup   % Stratification above the array
+        tlinedown % Stratification below the array
         
         Ny % Number of unit cells.
         ay % Excitation amplitude vector
@@ -9,8 +12,10 @@ classdef FiniteArrayY
         numM % Number of modes to sum (-numM:numM). Default -10:10.
     end
     methods
-        function this = FiniteArrayY(unitcell, Ny, ay, zfeed)
+        function this = FiniteArrayY(unitcell, tlineup, tlinedown, Ny, ay, zfeed)
             this.unitcell = unitcell;
+            this.tlineup = tlineup;
+            this.tlinedown = tlinedown;
             this.Ny = Ny;
             this.zfeed = zfeed;
             
@@ -21,7 +26,6 @@ classdef FiniteArrayY
             
             this.numM = 20;
         end
-        
         function Zas = GetInputImpedance(this, fs, th, ph)
             mx = [-this.numM:this.numM].';
             
@@ -38,8 +42,8 @@ classdef FiniteArrayY
             Ny_ = this.Ny;
             zfeed_ = this.zfeed;
 
-            tlineup = this.unitcell.tlineup;
-            tlinedown = this.unitcell.tlinedown;
+            tlineup_ = this.tlineup;
+            tlinedown_ = this.tlinedown;
             %% Initialize progress bar
             hDataQueue = parallel.pool.DataQueue;
             hWaitbar = waitbar(0, {'0% Initializing...', ''});
@@ -65,7 +69,7 @@ classdef FiniteArrayY
                 for(kxmi = 1:length(kxm))
                     for(nypi = 1:length(nyp))
                         Dmy(kxmi, nypi) = 1/(2*pi) .* integral(...
-                            @(ky) D_Integrand(f, dy, k0, ky, kxm(kxmi), tlineup, tlinedown, z0, wslot, nyp(nypi)), ...
+                            @(ky) D_Integrand(f, dy, k0, ky, kxm(kxmi), tlineup_, tlinedown_, z0, wslot, nyp(nypi)), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     end
                 end

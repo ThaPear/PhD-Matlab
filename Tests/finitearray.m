@@ -34,14 +34,14 @@ excitation = ones(Nx, Ny);
 tlineup = FreeSpace();
 tlinedown = FreeSpace();
 
-slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown, walled);
+slot = Slot(dx, dy, wslot, dslot, walled);
 
 
 th = eps * pi/180;
 ph = 0 * pi/180;
 
 if(~exist('array', 'var') || ~isa(array, 'FiniteArray') || array.Nx ~= Nx || array.Ny ~= Ny)
-    array = FiniteArray(slot, Nx, Ny, dedge, zfeed);
+    array = FiniteArray(slot, tlineup, tlinedown, Nx, Ny, dedge, zfeed);
 end
 array.InitializeZMatrix(fs);
 % tic;

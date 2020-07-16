@@ -16,6 +16,8 @@ Zcap = 1 ./ (1j .* 2.*pi.*fs .* C);
 fig = figureex(1);
 alignplot(fig, 1, 1, 1, [], 2);
 
+array = InfiniteArray(slot, tlineup, tlinedown);
+
 linewidth = 1;
 axlinewidth = 1;
 
@@ -93,7 +95,7 @@ for(iangle = 1:length(ths))
     
     % Calculate input impedance.
     tc = tic;
-    Zas = slot.GetInputImpedance(fs, th, ph);
+    Zas = array.GetInputImpedance(fs, th, ph);
 %     dispex('Calculated input impedance in %.3fs.\n', toc(tc));
     ZasC = Zas + Zcap; % With series capacitance.
     

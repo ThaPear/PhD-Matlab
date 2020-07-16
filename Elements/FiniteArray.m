@@ -2,6 +2,9 @@ classdef FiniteArray < handle
     properties
         unitcell  % Unit cell in the finite array
         
+        tlineup   % Stratification above the array
+        tlinedown % Stratification below the array
+        
         Nx % Number of unit cells in x
         Ny % Number of unit cells in y
         dedge % Distance to the slot termination
@@ -15,13 +18,14 @@ classdef FiniteArray < handle
         D_fs  % Frequencies for precomputed Ds
     end
     methods
-        function this = FiniteArray(unitcell, Nx, Ny, dedge, zfeed)
+        function this = FiniteArray(unitcell, tlineup, tlinedown, Nx, Ny, dedge, zfeed)
             this.unitcell = unitcell;
+            this.tlineup = tlineup;
+            this.tlinedown = tlinedown;
             this.Nx = Nx;
             this.Ny = Ny;
             this.dedge = dedge;
             this.zfeed = zfeed;
-            
         end
         function InitializeZMatrix(this, fs)
             % Ensure the appropriate D integrals have been calculated.
@@ -141,8 +145,8 @@ classdef FiniteArray < handle
             
             dy = this.unitcell.dy;
             wslot = this.unitcell.wslot;
-            tlineup = this.unitcell.tlineup;
-            tlinedown = this.unitcell.tlinedown;
+            tlineup_ = this.tlineup;
+            tlinedown_ = this.tlinedown;
             
             z0 = Constants.z0;
             c0 = Constants.c0;
@@ -181,7 +185,8 @@ classdef FiniteArray < handle
                     D_ = zeros(1, Ny_);
                     for(nypp = 0:Ny_-1)
                         D_(nypp+1) = integral(...
-                            @(kyp) D_Integrand_kyp(f, dy, k0, kyp, kx(kxi), tlineup, tlinedown, z0, wslot, nypp), ...
+                    % Calculate D for new kxs.
+                            @(kyp) D_Integrand_kyp(f, dy, k0, kyp, kx(kxi), tlineup_, tlinedown_, z0, wslot, nypp), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     end
                     D(kxi, :) = D_;
@@ -263,6 +268,22 @@ classdef FiniteArray < handle
             componentname = [parentcomponent, 'Array'];
             
             this.unitcell.BuildCST(project, [componentname, 'UnitCell']);
+            
+            wcs = project.WCS();
+%             obj.tlineup.BuildCST(project); 
+            wcs.Enable(); 
+            wcs.Store('Pre-Slot'); 
+            wcs.RotateWCS('u', 180); 
+             
+            % Build down-stratification. 
+            this.tlinedown.BuildCST(project, [componentname, 'UnitCell']); 
+             
+            wcs.Restore('Pre-Slot'); 
+            wcs.Delete('Pre-Slot'); 
+             
+            % Build up-stratification. 
+            this.tlineup.BuildCST(project, [componentname, 'UnitCell']); 
+            wcs.Disable(); 
             
             project.StoreParameter('lambda_min', 'c0/fmin/1e9');
             project.StoreParameter('Nx', num2str(this.Nx, '%.15g'));

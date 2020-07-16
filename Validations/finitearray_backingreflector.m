@@ -25,7 +25,7 @@ excitation = ones(Nx, Ny);
 tlineup = FreeSpace();
 tlinedown = ShortedLine(1, 0.25*l0);
 
-slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown, walled);
+slot = Slot(dx, dy, wslot, dslot, walled);
 
 
 fs = (15:2.5:55) * 1e9;
@@ -33,7 +33,7 @@ fs = (15:2.5:55) * 1e9;
 th = eps * pi/180;
 ph = 0 * pi/180;
 
-array = FiniteArray(slot, Nx, Ny, dedge, zfeed);
+array = FiniteArray(slot, tlineup, tlinedown, Nx, Ny, dedge, zfeed);
 
 project = CST.InitializeBasicProject();
 
@@ -50,9 +50,9 @@ array.BuildCST(project);
 %% Determine path to place the CST files
 [~, hostname] = system('hostname'); hostname = strsplit(hostname, '\n');
 if(strcmp(hostname{1}, 'SRV539'))
-    path = sprintf('D:\\data\\Sander\\Finite_Array\\Validations\\%s\\', mfilename);
+    path = sprintf('E:\\data\\Sander\\Finite_Array\\Validations\\%s\\', mfilename);
 elseif(strcmp(hostname{1}, 'TUD211735'))
-    path = sprintf('e:\\ Simulations\\Finite_Array\\Validations\\%s\\', mfilename);
+    path = sprintf('E:\\ Simulations\\Finite_Array\\Validations\\%s\\', mfilename);
 else
     path = sprintf('H:\\Git\\PhD-Matlab\\Validations\\%s\\', mfilename);
 end
