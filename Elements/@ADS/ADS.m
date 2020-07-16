@@ -16,7 +16,7 @@ classdef ADS < TLine
         NADL
     end
     methods
-        BuildCST(this, project)
+        BuildCST(this, project, parentcomponent)
         BuildCSTMaterial(this, project)
         [ds, ss, ws] = CondenseParams(this, ds, ss, ws)
         [ds, ss, ws] = CondenseParamsSeparate(this, ds, ss, ws)

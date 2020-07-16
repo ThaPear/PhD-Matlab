@@ -14,7 +14,7 @@ classdef Element
         function h = GetEffectiveHeight(this, f)
             h = 0;
         end
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
             error('BuildCST not defined for objects of class ''%s''.', class(this));
         end
     end

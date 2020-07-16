@@ -9,7 +9,16 @@ classdef Cavity
             this.cavity_width_diagonal = cavity_width_diagonal;
         end
         
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Cavity'];
+            
             brick = project.Brick();
             transform = project.Transform();
             solid = project.Solid();
@@ -27,7 +36,7 @@ classdef Cavity
             project.MakeSureParameterExists('dms', 0.127);
             
             brick.Reset();
-            brick.Component('Cavity');
+            brick.Component(componentname);
             brick.Name('Cavity');
             brick.Xrange('-dx/2', 'dx/2');
             brick.Yrange('-cavity_width/2', 'cavity_width/2');
@@ -36,7 +45,7 @@ classdef Cavity
             brick.Create();
             
             brick.Reset();
-            brick.Component('Cavity');
+            brick.Component(componentname);
             brick.Name('CavityDiag');
             brick.Xrange('dx/2-cavity_width_diagonal/2', 'dx/2+cavity_width_diagonal/2');
             brick.Yrange('-cavity_width_diagonal/2', 'cavity_width_diagonal/2');
@@ -45,14 +54,14 @@ classdef Cavity
             brick.Create();
         
             transform.Reset();
-            transform.Name('Cavity:CavityDiag');
+            transform.Name([componentname, ':CavityDiag']);
             transform.Angle(0, 0, 45);
             transform.Origin('ShapeCenter');
             transform.Repetitions(1);
             transform.Transform('Shape', 'Rotate');
         
             transform.Reset();
-            transform.Name('Cavity:CavityDiag');
+            transform.Name([componentname, ':CavityDiag']);
             transform.Vector('-dx', 0, 0);
             transform.Repetitions(1);
             transform.MultipleObjects(1);
@@ -60,7 +69,7 @@ classdef Cavity
             transform.Transform('Shape', 'Translate');
         
             transform.Reset();
-            transform.Name('Cavity:CavityDiag');
+            transform.Name([componentname, ':CavityDiag']);
             transform.Vector(0, '-dy', 0);
             transform.Repetitions(1);
             transform.MultipleObjects(1);

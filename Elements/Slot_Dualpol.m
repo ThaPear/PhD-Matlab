@@ -7,7 +7,16 @@ classdef Slot_Dualpol < Slot
             this@Slot(dx, dy, wslot, dslot, tlineup, tlinedown, 0, 1);
             this.wfeed = wfeed;
         end
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Slot'];
+            
             project.StoreParameter('wslot', this.wslot*1e3);
             project.StoreParameter('lfeed', this.dslot*1e3/2);
             project.StoreParameter('wfeed', ['wslot / 2']);
@@ -37,7 +46,7 @@ classdef Slot_Dualpol < Slot
             wcs.Store('Pre-Slot');
             wcs.MoveWCS('local', 'slot_s0 * dx', 'slot_s0 * dx', 0);
             
-            component.New('Slot');
+            component.New(componentname);
             
             % Draw the slot metal.
             polygon3d.Reset();
@@ -60,7 +69,7 @@ classdef Slot_Dualpol < Slot
             
             extrudecurve.Reset();
             extrudecurve.Curve('Slot');
-            extrudecurve.Component('Slot');
+            extrudecurve.Component(componentname);
             extrudecurve.Name('Metal');
             extrudecurve.Material('PEC');
             extrudecurve.Thickness(0);
@@ -69,7 +78,7 @@ classdef Slot_Dualpol < Slot
             
             % Mirror the metal in x = 0.
             transform.Reset();
-            transform.Name('Slot:Metal');
+            transform.Name([componentname, ':Metal']);
             transform.Vector('0', 'dy', '0');
             transform.MultipleObjects(1);
             transform.GroupObjects(1);
@@ -80,7 +89,7 @@ classdef Slot_Dualpol < Slot
             
             % Cut the metal to unit cell size.
             brick.Reset();
-            brick.Component('Slot');
+            brick.Component(componentname);
             brick.Name('UnitCell');
             brick.Xrange(['dx * (-1/2 - slot_s0)'], ['dx * (1/2 - slot_s0)']);
             brick.Yrange(['dy * (-1/2 - slot_s0)'], ['dy * (1/2 - slot_s0)']);
@@ -88,12 +97,12 @@ classdef Slot_Dualpol < Slot
             brick.Material('Transparent');
             brick.Create();
             
-            solid.Intersect('Slot:Metal', 'Slot:UnitCell');
+            solid.Intersect([componentname, ':Metal'], [componentname, ':UnitCell']);
             
             
             % Make feed vacuum.
             brick.Reset();
-            brick.Component('Slot');
+            brick.Component(componentname);
             brick.Name('FeedPort1');
             brick.Xrange('-dx/2-lfeed/2', '-dx/2+lfeed/2');
             brick.Yrange('-wfeed/2', 'wfeed/2');
@@ -102,17 +111,21 @@ classdef Slot_Dualpol < Slot
             brick.Create();
             
             % Other feed vacuum
+            brick.Reset();
+            brick.Component(componentname);
             brick.Name('FeedPort2');
             brick.Xrange('-wfeed/2', 'wfeed/2');
             brick.Yrange('-dy/2-lfeed/2', '-dy/2+lfeed/2');
+            brick.Zrange(0, 0);
+            brick.Material('Vacuum');
             brick.Create();
             
             Nports = port.StartPortNumberIteration();
             
             % Define the port.
             pick = project.Pick();
-            pick.PickEdgeFromId('Slot:FeedPort1', 2, 2);
-            pick.PickEdgeFromId('Slot:FeedPort1', 4, 4);
+            pick.PickEdgeFromId([componentname, ':FeedPort1'], 2, 2);
+            pick.PickEdgeFromId([componentname, ':FeedPort1'], 4, 4);
             discretefaceport.Reset();
             discretefaceport.PortNumber(Nports+1);
             discretefaceport.Label('SlotFeedPort1');
@@ -125,8 +138,8 @@ classdef Slot_Dualpol < Slot
             
             % Define the port.
             pick = project.Pick();
-            pick.PickEdgeFromId('Slot:FeedPort2', 1, 1);
-            pick.PickEdgeFromId('Slot:FeedPort2', 3, 3);
+            pick.PickEdgeFromId([componentname, ':FeedPort2'], 1, 1);
+            pick.PickEdgeFromId([componentname, ':FeedPort2'], 3, 3);
             discretefaceport.Reset();
             discretefaceport.PortNumber(Nports+2);
             discretefaceport.Label('SlotFeedPort2');
@@ -142,13 +155,13 @@ classdef Slot_Dualpol < Slot
             wcs.RotateWCS('u', 180);
             
             % Build down-stratification.
-            this.tlinedown.BuildCST(project);
+            this.tlinedown.BuildCST(project, parentcomponent);
             
             wcs.Restore('Pre-Slot');
             wcs.Delete('Pre-Slot');
             
             % Build up-stratification.
-            this.tlineup.BuildCST(project);
+            this.tlineup.BuildCST(project, parentcomponent);
             
             wcs.Disable();
         end

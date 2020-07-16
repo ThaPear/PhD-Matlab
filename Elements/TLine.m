@@ -183,9 +183,9 @@ classdef TLine < Element
                 this.elements{i}.PlotEpsilons(fs, hAx);
             end
         end
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
             for(i = 1:length(this.elements))
-                this.elements{i}.BuildCST(project);
+                this.elements{i}.BuildCST(project, parentcomponent);
             end
         end
         

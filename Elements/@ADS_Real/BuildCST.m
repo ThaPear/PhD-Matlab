@@ -1,5 +1,12 @@
 % ADS.BuildCST
-function BuildCST(this, project)
+function BuildCST(this, project, parentcomponent)
+    if(nargin < 3 || isempty(parentcomponent))
+        parentcomponent = '';
+    else
+        if(~strcmp(parentcomponent(end), '/'))
+            parentcomponent = [parentcomponent, '/'];
+        end
+    end
     wcs = project.WCS();
     solid = project.Solid();
     component = project.Component();
@@ -7,8 +14,8 @@ function BuildCST(this, project)
     material = project.Material();
     transform = project.Transform();
 
-    number = component.GetNextFreeNameWithBase('ADS');
-    componentname = ['ADS', num2str(number)];
+    number = component.GetNextFreeNameWithBase([parentcomponent, 'ADS']);
+    componentname = [parentcomponent, 'ADS', num2str(number)];
     component.New(componentname);
 
     % If dx and dy don't exist, create them to be equal to p.

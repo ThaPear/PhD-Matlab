@@ -112,7 +112,15 @@ classdef Line < Element
         function h = GetEffectiveHeight(this, f)
             h = this.L .* sqrt(this.er);
         end
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Lines'];
             if(isfield(this.cst, 'LengthParameter'))
                 project.StoreParameter(this.cst.LengthParameter, this.L*1e3);
             end
@@ -139,7 +147,7 @@ classdef Line < Element
                 % Create the dielectric.
                 brick = project.Brick();
                 brick.Reset();
-                brick.Component('Lines');
+                brick.Component(componentname);
                 brickname = ['Line ', num2str(floor(rand()*1e4))];
                 brick.Name(brickname);
                 brick.Xrange('-dx/2', 'dx/2');
@@ -153,7 +161,7 @@ classdef Line < Element
                 brick.Create();
                 
                 solid = project.Solid();
-                solid.MergeMaterialsOfComponent(['Lines:', brickname]);
+                solid.MergeMaterialsOfComponent([componentname, ':', brickname]);
             end
             
             wcs = project.WCS();

@@ -37,7 +37,16 @@ classdef Feed_Microstrip
             this.slot = slot;
             this.dualpol = contains(lower(class(slot)), 'dualpol');
         end
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Slot'];
+            
             brick = project.Brick();
             solid = project.Solid();
             wcs = project.WCS();
@@ -60,9 +69,9 @@ classdef Feed_Microstrip
                 Nports = port.StartPortNumberIteration();
                 
                 % Delete existing ports.
-                solid.Delete('Slot:FeedPort2');
+                solid.Delete([componentname, ':FeedPort2']);
                 port.Delete(Nports);
-                solid.Delete('Slot:FeedPort1');
+                solid.Delete([componentname, ':FeedPort1']);
                 port.Delete(Nports-1);
                 
                 Nports = Nports - 2;
@@ -70,7 +79,7 @@ classdef Feed_Microstrip
                 % X-feed microstrip
                 brick.Reset();
                 brick.Name('FeedX');
-                brick.Component('Slot');
+                brick.Component(componentname);
                 brick.Material('PEC');
                 brick.Xrange('-dx/2-feed_width/2', '-dx/2+feed_width/2');
                 brick.Yrange('wfeed/2', '-wfeed/2-feed_length');
@@ -78,7 +87,9 @@ classdef Feed_Microstrip
                 brick.Create();
                 
                 % X-feed short
+                brick.Reset();
                 brick.Name('FeedShortX');
+                brick.Component(componentname);
                 brick.Material('PEC');
                 brick.Xrange('-dx/2-feed_width/2', '-dx/2+feed_width/2');
                 brick.Yrange('wfeed/2', 'wfeed/2');
@@ -86,7 +97,9 @@ classdef Feed_Microstrip
                 brick.Create();
                 
                 % X-feed port
+                brick.Reset();
                 brick.Name('FeedPortX');
+                brick.Component(componentname);
                 brick.Material('Vacuum');
                 brick.Xrange('-dx/2-feed_width/2', '-dx/2+feed_width/2');
                 brick.Yrange('-wfeed/2-feed_length', '-wfeed/2-feed_length');
@@ -94,8 +107,8 @@ classdef Feed_Microstrip
                 brick.Create();
                 
                 % Define the port.
-                pick.PickEdgeFromId('Slot:FeedPortX', 2, 2);
-                pick.PickEdgeFromId('Slot:FeedPortX', 4, 4);
+                pick.PickEdgeFromId([componentname, ':FeedPortX'], 2, 2);
+                pick.PickEdgeFromId([componentname, ':FeedPortX'], 4, 4);
                 discretefaceport.Reset();
                 discretefaceport.PortNumber(Nports+1);
                 discretefaceport.Label('SlotFeedPortX');
@@ -109,7 +122,7 @@ classdef Feed_Microstrip
                 % Y-feed microstrip
                 brick.Reset();
                 brick.Name('FeedY');
-                brick.Component('Slot');
+                brick.Component(componentname);
                 brick.Material('PEC');
                 brick.Xrange('wfeed/2', '-wfeed/2-feed_length');
                 brick.Yrange('-dy/2-feed_width/2', '-dy/2+feed_width/2');
@@ -117,7 +130,9 @@ classdef Feed_Microstrip
                 brick.Create();
                 
                 % Y-feed short
+                brick.Reset();
                 brick.Name('FeedShortY');
+                brick.Component(componentname);
                 brick.Material('PEC');
                 brick.Xrange('wfeed/2', 'wfeed/2');
                 brick.Yrange('-dy/2-feed_width/2', '-dy/2+feed_width/2');
@@ -125,7 +140,9 @@ classdef Feed_Microstrip
                 brick.Create();
                 
                 % Y-feed port
+                brick.Reset();
                 brick.Name('FeedPortY');
+                brick.Component(componentname);
                 brick.Material('Vacuum');
                 brick.Xrange('-wfeed/2-feed_length', '-wfeed/2-feed_length');
                 brick.Yrange('-dy/2-feed_width/2', '-dy/2+feed_width/2');
@@ -133,8 +150,8 @@ classdef Feed_Microstrip
                 brick.Create();
                 
                 % Define the port.
-                pick.PickEdgeFromId('Slot:FeedPortY', 3, 3);
-                pick.PickEdgeFromId('Slot:FeedPortY', 1, 1);
+                pick.PickEdgeFromId([componentname, ':FeedPortY'], 3, 3);
+                pick.PickEdgeFromId([componentname, ':FeedPortY'], 1, 1);
                 discretefaceport.Reset();
                 discretefaceport.PortNumber(Nports+2);
                 discretefaceport.Label('SlotFeedPortY');

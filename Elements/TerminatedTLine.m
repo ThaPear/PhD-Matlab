@@ -49,9 +49,9 @@ classdef TerminatedTLine < Element
             h = h + this.terminator.GetEffectiveHeight(f);
         end
         
-        function BuildCST(this, project)
-            this.tline.BuildCST(project);
-            this.terminator.BuildCST(project);
+        function BuildCST(this, project, parentcomponent)
+            this.tline.BuildCST(project, parentcomponent);
+            this.terminator.BuildCST(project, parentcomponent);
         end
     end
 end

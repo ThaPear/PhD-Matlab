@@ -252,8 +252,17 @@ classdef FiniteArray < handle
             dt = toc(tc);
             dispex('Active Z took %.1fms for %ix%i elements, %i frequencies.\n', dt*1e3, Nx_, Ny_, Nf);
         end
-        function BuildCST(this, project)
-            this.unitcell.BuildCST(project);
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Array'];
+            
+            this.unitcell.BuildCST(project, [componentname, 'UnitCell']);
             
             project.StoreParameter('lambda_min', 'c0/fmin/1e9');
             project.StoreParameter('Nx', num2str(this.Nx, '%.15g'));
@@ -271,7 +280,7 @@ classdef FiniteArray < handle
             % Only if there's more than 1 feed in X.
             project.NextCommandConditional('Nx > 1');
                 transform.Reset();
-                transform.Name('Slot');
+                transform.Name([componentname, 'UnitCell']);
                 transform.Vector('dx', 0, 0);
                 transform.MultipleObjects(1);
                 transform.GroupObjects(1);
@@ -281,7 +290,7 @@ classdef FiniteArray < handle
             %% Create the terminations
             brick.Reset();
             brick.Name('Termination1');
-            brick.Component('Slot');
+            brick.Component([componentname, 'UnitCell/Slot']);
             brick.Xrange('-edge_distance-edge_length',  '-dx/2');
             brick.Yrange('-dy/2', 'dy/2');
             brick.Zrange('0', '0');
@@ -290,7 +299,7 @@ classdef FiniteArray < handle
             
             brick.Reset();
             brick.Name('Termination1_Slot');
-            brick.Component('Slot');
+            brick.Component([componentname, 'UnitCell/Slot']);
             brick.Xrange('-edge_distance',  '-dx/2');
             brick.Yrange('-slot_width/2', 'slot_width/2');
             brick.Zrange('0', '0');
@@ -299,7 +308,7 @@ classdef FiniteArray < handle
             
             brick.Reset();
             brick.Name('Termination2');
-            brick.Component('Slot');
+            brick.Component([componentname, 'UnitCell/Slot']);
             brick.Xrange('(Nx-1)*dx+dx/2',  '(Nx-1)*dx+edge_distance+edge_length');
             brick.Yrange('-dy/2', 'dy/2');
             brick.Zrange('0', '0');
@@ -308,21 +317,21 @@ classdef FiniteArray < handle
             
             brick.Reset();
             brick.Name('Termination2_Slot');
-            brick.Component('Slot');
+            brick.Component([componentname, 'UnitCell/Slot']);
             brick.Xrange('(Nx-1)*dx+dx/2',  '(Nx-1)*dx+edge_distance');
             brick.Yrange('-slot_width/2', 'slot_width/2');
             brick.Zrange('0', '0');
             brick.Material('PEC');
             brick.Create();
             
-            solid.Subtract('Slot:Termination1', 'Slot:Termination1_Slot');
-            solid.Subtract('Slot:Termination2', 'Slot:Termination2_Slot');
+            solid.Subtract([componentname, 'UnitCell/Slot:Termination1'], [componentname, 'UnitCell/Slot:Termination1_Slot']);
+            solid.Subtract([componentname, 'UnitCell/Slot:Termination2'], [componentname, 'UnitCell/Slot:Termination2_Slot']);
             
             %% Copy the slot in the y-direction
             % Only if there's more than 1 slot in Y.
             project.NextCommandConditional('Ny > 1');
                 transform.Reset();
-                transform.Name('Slot');
+                transform.Name([componentname, 'UnitCell']);
                 transform.Vector(0, 'dy', 0);
                 transform.MultipleObjects(1);
                 transform.GroupObjects(1);
@@ -356,7 +365,7 @@ classdef FiniteArray < handle
             project.NextCommandConditional('padding_x > 0');
                 brick.Reset();
                 brick.Name('Padding_x1');
-                brick.Component('Slot');
+                brick.Component(componentname);
                 brick.Xrange('-edge_distance-edge_length-padding_x',  '-edge_distance-edge_length');
                 brick.Yrange('-dy/2', '(Ny-1)*dy+dy/2');
                 brick.Zrange('0', '0');
@@ -365,7 +374,7 @@ classdef FiniteArray < handle
             project.NextCommandConditional('padding_x > 0');
                 brick.Reset();
                 brick.Name('Padding_x2');
-                brick.Component('Slot');
+                brick.Component(componentname);
                 brick.Xrange('(Nx-1)*dx+edge_distance+edge_length',  '(Nx-1)*dx+edge_distance+edge_length+padding_x');
                 brick.Yrange('-dy/2', '(Ny-1)*dy+dy/2');
                 brick.Zrange('0', '0');
@@ -374,7 +383,7 @@ classdef FiniteArray < handle
             project.NextCommandConditional('padding_y > 0');
                 brick.Reset();
                 brick.Name('Padding_y1');
-                brick.Component('Slot');
+                brick.Component(componentname);
                 brick.Xrange('-edge_distance-edge_length-padding_x', '(Nx-1)*dx+edge_distance+edge_length+padding_x');
                 brick.Yrange('-dy/2-padding_y',  '-dy/2');
                 brick.Zrange('0', '0');
@@ -383,7 +392,7 @@ classdef FiniteArray < handle
             project.NextCommandConditional('padding_y > 0');
                 brick.Reset();
                 brick.Name('Padding_y2');
-                brick.Component('Slot');
+                brick.Component(componentname);
                 brick.Xrange('-edge_distance-edge_length-padding_x', '(Nx-1)*dx+edge_distance+edge_length+padding_x');
                 brick.Yrange('(Ny-1)*dy+dy/2',  '(Ny-1)*dy+dy/2+padding_y');
                 brick.Zrange('0', '0');

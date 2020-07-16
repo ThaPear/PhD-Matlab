@@ -15,7 +15,7 @@ classdef ADS_Real < ADS
 %         NADL
     end
     methods
-        BuildCST(this, project)
+        BuildCST(this, project, parentcomponent)
     end
     methods
         function this = ADS_Real(p, ds, ss, ws, ~)

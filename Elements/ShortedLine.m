@@ -34,13 +34,21 @@ classdef ShortedLine < Element
         function h = GetHeight(this)
             h = this.L;
         end
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'BackingReflector'];
             project.MakeSureParameterExists('hback', this.L*1e3);
             
             % Create the metal plate.
             brick = project.Brick();
             brick.Reset();
-            brick.Component('BackingReflector');
+            brick.Component(componentname);
             brick.Name('Metal');
             brick.Xrange('-dx/2', 'dx/2');
             brick.Yrange('-dy/2', 'dy/2');
@@ -73,7 +81,7 @@ classdef ShortedLine < Element
                 
                 % Create the dielectric.
                 brick.Reset();
-                brick.Component('BackingReflector');
+                brick.Component(componentname);
                 brick.Name('Dielectric');
                 brick.Xrange('-dx/2', 'dx/2');
                 brick.Yrange('-dy/2', 'dy/2');

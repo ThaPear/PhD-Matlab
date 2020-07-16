@@ -9,7 +9,15 @@ classdef Cavity_Dualpol
             this.cavity_width_diagonal = cavity_width_diagonal;
         end
         
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Cavity'];
             brick = project.Brick();
             transform = project.Transform();
             solid = project.Solid();
@@ -27,7 +35,7 @@ classdef Cavity_Dualpol
             project.MakeSureParameterExists('dms', 0.127);
             
             brick.Reset();
-            brick.Component('Cavity');
+            brick.Component(componentname);
             brick.Name('Cavity');
             brick.Xrange('-dx/2', 'dx/2');
             brick.Yrange('slot_s0*dy-cavity_width/2', 'slot_s0*dy+cavity_width/2');
@@ -36,7 +44,7 @@ classdef Cavity_Dualpol
             brick.Create();
             
             brick.Reset();
-            brick.Component('Cavity');
+            brick.Component(componentname);
             brick.Name('Cavity2');
             brick.Xrange('slot_s0*dx-cavity_width/2', 'slot_s0*dx+cavity_width/2');
             brick.Yrange('-dy/2', 'dy/2');
@@ -44,10 +52,10 @@ classdef Cavity_Dualpol
             brick.Material('PEC');
             brick.Create();
             
-            solid.Add('Cavity:Cavity', 'Cavity:Cavity2');
+            solid.Add([componentname, ':Cavity'], [componentname, ':Cavity2']);
             
             brick.Reset();
-            brick.Component('Cavity');
+            brick.Component(componentname);
             brick.Name('CavityDiag');
             brick.Xrange('slot_s0*dx-cavity_width_diagonal/2', 'slot_s0*dx+cavity_width_diagonal/2');
             brick.Yrange('slot_s0*dy-cavity_width_diagonal/2', 'slot_s0*dy+cavity_width_diagonal/2');
@@ -56,14 +64,14 @@ classdef Cavity_Dualpol
             brick.Create();
         
             transform.Reset();
-            transform.Name('Cavity:CavityDiag');
+            transform.Name([componentname, ':CavityDiag']);
             transform.Angle(0, 0, 45);
             transform.Origin('ShapeCenter');
             transform.Repetitions(1);
             transform.Transform('Shape', 'Rotate');
         
             transform.Reset();
-            transform.Name('Cavity:CavityDiag');
+            transform.Name([componentname, ':CavityDiag']);
             transform.Vector('-dx', 0, 0);
             transform.Repetitions(1);
             transform.MultipleObjects(1);
@@ -71,7 +79,7 @@ classdef Cavity_Dualpol
             transform.Transform('Shape', 'Translate');
         
             transform.Reset();
-            transform.Name('Cavity:CavityDiag');
+            transform.Name([componentname, ':CavityDiag']);
             transform.Vector(0, '-dy', 0);
             transform.Repetitions(1);
             transform.MultipleObjects(1);

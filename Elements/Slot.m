@@ -217,12 +217,21 @@ classdef Slot
         function h = GetHeight(~)
             h = 0;
         end
-        function BuildCST(this, project)
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Slot'];
+            
             project.StoreParameter('slot_width', this.wslot*1e3);
-            project.StoreParameter('slot_feedlength', this.dslot*1e3/2);
+            project.StoreParameter('slot_feedlength', this.dslot*1e3);
             project.StoreParameter('slot_bowtie', ['slot_feedlength']);
-            project.StoreParameter('slot_bowtie_outer', ['slot_bowtie * 2']);
-            project.StoreParameter('slot_feedwidth', ['slot_width / 2']);
+            project.StoreParameter('slot_bowtie_outer', ['slot_bowtie']);
+            project.StoreParameter('slot_feedwidth', ['slot_width']);
             project.StoreParameter('dx', this.dx*1e3);
             project.StoreParameter('dy', this.dy*1e3);
             project.MakeSureParameterExists('slot_impedance', 80);
@@ -257,7 +266,7 @@ classdef Slot
             
             extrudecurve.Reset();
             extrudecurve.Curve('Slot');
-            extrudecurve.Component('Slot');
+            extrudecurve.Component(componentname);
             extrudecurve.Name('Metal');
             extrudecurve.Material('PEC');
             extrudecurve.Thickness(0);
@@ -266,7 +275,7 @@ classdef Slot
             
             % Mirror the metal in x = 0.
             transform.Reset();
-            transform.Name('Slot:Metal');
+            transform.Name([componentname, ':Metal']);
             transform.PlaneNormal(0, 1, 0);
             transform.Center(0, 0, 0);
             transform.Origin('Free');
@@ -295,7 +304,7 @@ classdef Slot
             % Create the vacuum plate for the feed.
             
             brick.Reset();
-            brick.Component('Slot');
+            brick.Component(componentname);
             brick.Name('FeedPort');
             brick.Xrange('-slot_feedlength/2', 'slot_feedlength/2');
             brick.Yrange('-slot_feedwidth/2', 'slot_feedwidth/2');
@@ -330,7 +339,7 @@ classdef Slot
                 project.MakeSureParameterExists('dwall', 0);
                 brick.Reset();
                 brick.Name('Walls');
-                brick.Component('Slot');
+                brick.Component(componentname);
                 brick.Xrange('-dx/2',  'dx/2');
                 brick.Yrange('-dy/2', '-dy/2+dwall');
                 brick.Zrange('0', this.tlinedown.GetHeight()*1e3);
@@ -346,13 +355,13 @@ classdef Slot
                 transform.Transform('Shape', 'Translate');
             end
             % Build down-stratification.
-            this.tlinedown.BuildCST(project);
+            this.tlinedown.BuildCST(project, parentcomponent);
             
             wcs.Restore('Pre-Slot');
             wcs.Delete('Pre-Slot');
             
             % Build up-stratification.
-            this.tlineup.BuildCST(project);
+            this.tlineup.BuildCST(project, parentcomponent);
             
             wcs.Disable();
         end
