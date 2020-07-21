@@ -16,6 +16,7 @@ classdef FiniteArray < handle
         Ds    % Precomputed Ds
         D_kxs % Kx values for precomputed Ds
         D_fs  % Frequencies for precomputed Ds
+        D_interpolants % Interpolant to index at any given kx
     end
     methods
         function this = FiniteArray(unitcell, tlineup, tlinedown, Nx, Ny, dedge, zfeed)
@@ -140,7 +141,6 @@ classdef FiniteArray < handle
         end
         function InitializeDs(this, fs)
             tc = tic;
-            Nf = length(fs);
             Ny_ = this.Ny;
             
             dy = this.unitcell.dy;
@@ -151,66 +151,168 @@ classdef FiniteArray < handle
             z0 = Constants.z0;
             c0 = Constants.c0;
             
-            %% Initialize progress bar
-            hDataQueue = parallel.pool.DataQueue;
-            hWaitbar = waitbar(0, {'0% Initializing...', '', ''});
-            afterEach(hDataQueue, @updateWaitbar);
             
             newfs = setdiff(fs, this.D_fs);
-            Nf = length(newfs);
-            for(fi = 1:Nf)
-                f = newfs(fi);
+            
+            % Create a list of all f and nypp combinations
+            [fimat, nyppmat] = meshgrid(1:length(newfs), 0:Ny_-1);
+            fivec = fimat(:);
+            nyppvec = nyppmat(:);
+            N = length(fivec);
+            
+            %% Initialize progress bar
+            hDataQueue = parallel.pool.DataQueue;
+            hWaitbar = waitbar(0, {'0% Initializing...', ''});
+            afterEach(hDataQueue, @updateWaitbar);
+            progress = -1; send(hDataQueue, nan);
+            
+            Dlist = cell(1,N);
+            kxlist = cell(1,N);
+            parfor(ni = 1:N)
+%                 ni = 40;
+                fi = fivec(ni);
+                f = newfs(fi); %#ok<PFBNS> % Broadcast variable.
+                nypp = nyppvec(ni);
+                
+                %% Determine integration path
                 k0 = 2*pi*f / c0;
                 
                 % Go to +-inf
-                delta = 0.01.*k0;
+                delta = 0.02.*k0;
                 lim1 = -100.*k0-1j.*delta;
                 lim2 = -lim1;
                 % Deform integration path around branch cuts.
                 integrationpath = [(-1-1j).*delta, (1+1j).*delta];
                 
-                kx = [linspace(lim1, integrationpath(1), 2950), ...
-                      linspace(integrationpath(1), integrationpath(2), 102), ...
-                      linspace(integrationpath(2), lim2, 2950)];
+                %% Initial sample points
+                N1 = 100;
+                N2 = 10;
+                
+                newkx = [linspace(lim1, integrationpath(1), N1), ...
+                      linspace(integrationpath(1), integrationpath(2), N2+2), ...
+                      linspace(integrationpath(2), lim2, N1)];
                 % Remove the duplicate elements
-                kx(2951) = [];
-                kx(end-2950) = [];
+                newkx(N1) = [];
+                newkx(end-N1) = [];
                 
-                N = length(kx);
+                kx = [];
+                D = [];
                 
-                progress = -100; send(hDataQueue, nan);
-                
-                D = zeros(length(kx), Ny_);
-                parfor(kxi = 1:length(kx))
-                    D_ = zeros(1, Ny_);
-                    for(nypp = 0:Ny_-1)
-                        D_(nypp+1) = integral(...
+%                 [hFig, hAx] = figureex;
+                it = 0;
+                while(~isempty(newkx) && it < 15)
+                    it = it + 1;
+                    D = [D zeros(1, length(newkx))]; %#ok<AGROW> Cannot preallocate due to unknown number of kx.
+                    kxis = length(kx)+1:(length(kx) + length(newkx));
+                    % Append new kxs.
+                    kx = [kx newkx]; %#ok<AGROW> Cannot preallocate due to unknown number of kx.
                     % Calculate D for new kxs.
+                    for(kxi = kxis)
+                        D(kxi) = integral(...
                             @(kyp) D_Integrand_kyp(f, dy, k0, kyp, kx(kxi), tlineup_, tlinedown_, z0, wslot, nypp), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     end
-                    D(kxi, :) = D_;
-                    if(~mod(kxi, 100))
-                        send(hDataQueue, nan); % Update progress bar
+                    % Sort kx based on the real part.
+                    [kx, I] = sort(kx, 'ComparisonMethod', 'real');
+                    D = D(I);
+                    
+                    errorbound = 0.01;
+                    % Calculate first and second derivative of resulting D vector.
+                    dD = (D(2:end) - D(1:end-1)) ./ abs(kx(2:end) - kx(1:end-1));
+                    ddD = (dD(2:end) - dD(1:end-1));
+                    % Determine the points where D must be sampled more.
+                    % The +1 arises from the indexing used for the derivatives.
+                    ind = find(abs(ddD) > errorbound) + 1;
+%                     ind(ind == length(kx)) = [];
+                    if(max(ind) == length(kx))
+                        error('Should not reach %i.\n', length(kx));
                     end
+                    
+                    % If there's no new indices, we're done.
+                    if(isempty(ind))
+%                         dispex('Finished after calculating %i values.\n', length(kx));
+                        break;
+                    end
+                    % Since we will sample after each point, add the previous points as well.
+                    ind = unique([ind-1, ind]);
+%                     ind(ind == 0) = [];
+                    if(min(ind) == 0)
+                        error('Should not reach 0.\n');
+                    end
+                    % Determine the new kx values to sample at.
+                    newkx = (kx(ind) + kx(ind+1))/2;
+%                     dispex('Calculating %i new values on iteration %i.\n', length(newkx), it);
+                    
+%                     % Plots for debugging
+%                     yyaxis(hAx, 'left');
+%                         cla(hAx);
+%                         plot(hAx, real(kx), real(D), 'ko');
+%                         plot(hAx, real(kx), imag(D), 'kx');
+%                         plot(hAx, real(kx(ind)), imag(D(ind)), 'rx');
+%                     yyaxis(hAx, 'right');
+%                         cla(hAx);
+%                         plot(hAx, real(kx(2:end-1)), abs(ddD));
                 end
                 
-                fii = length(this.Ds)+1;
-                this.Ds{fii} = D;
-                this.D_fs(fii) = f;
-                this.D_kxs{fii} = real(kx);
+                Dlist{ni} = D;
+                kxlist{ni} = kx;
+                send(hDataQueue, nan);
+            end
+            % Update progress bar.
+            waitbar(1, hWaitbar, ...
+                {sprintf('%.1f%% Precomputing D...', 100), ...
+                 sprintf('Finalizing...')});
+            
+            % Store the frequency points in the this.D_fs vector.
+            this.D_fs = [this.D_fs, newfs];
+            % Store the calculated Ds and their kx values in the this.Ds and this.D_kxs cells.
+            for(ni = 1:N)
+                fii = this.D_fs == newfs(fivec(ni));
+                nypp = nyppvec(ni);
+                
+                tempkxs = kxlist{ni};
+                tempDs = Dlist{ni};
+                
+                %% Determine integration path
+                f = this.D_fs(fii);
+                k0 = 2*pi*f / c0;
+                % Go to +-inf
+                delta = 0.01.*k0;
+                lim1 = -100.*k0-1j.*delta;
+                lim2 = -lim1;
+                
+                
+                newkxs = linspace(real(lim1), real(lim2), 5000);
+                
+%                 dkx = min(real(tempkxs(2:end) - tempkxs(1:end-1)));
+%                 dispex('%i elements, %.1f ideally.\n', length(tempkxs), 2*real(lim2)/dkx);
+%                 [hFig, hAx] = figureex(101); 
+%                     yyaxis(hAx, 'left');
+%                         plot(hAx, real(tempkxs), abs(tempDs - interp1(newkxs, interp1(real(tempkxs), tempDs, newkxs), real(tempkxs)))./abs(tempDs));
+%                     yyaxis(hAx, 'right');
+%                         plot(hAx, real(tempkxs), real(tempDs));
+%                         plot(hAx, real(tempkxs), imag(tempDs), '--');
+%                         plot(hAx, real(newkxs), real(interp1(real(tempkxs), tempDs, newkxs)), ':');
+%                         plot(hAx, real(newkxs), real(interp1(real(tempkxs), tempDs, newkxs)), '-.');
+                
+                tempDs = interp1(real(tempkxs), tempDs, newkxs);
+                tempkxs = newkxs;
+                
+                this.Ds{fii, nypp+1} = tempDs;
+                this.D_kxs{fii, nypp+1} = real(tempkxs);
+                this.D_interpolants{fii, nypp+1} = griddedInterpolant(this.D_kxs{fii, nypp+1}, this.Ds{fii, nypp+1});
             end
             
+            
             function updateWaitbar(~)
-                progress = progress + 100;
-                waitbar(((fi-1)*N+progress)/(Nf*N), hWaitbar, ...
-                    {sprintf('%.1f%% Precomputing D...', ((fi-1)*N+progress)/(Nf*N)*100), ...
-                     sprintf('%i/%i frequencies done.', fi-1, Nf), ...
-                     sprintf('%i/%i kxs done.', progress, N)});
+                progress = progress + 1;
+                waitbar(progress/N, hWaitbar, ...
+                    {sprintf('%.1f%% Precomputing D...', progress/N*100), ...
+                     sprintf('%i/%i iterations done.', progress, N)});
             end
             delete(hWaitbar);
             dt = toc(tc);
-            dispex('D took %.1fs for %i slots, %i frequencies.\n', dt, Ny_, Nf);
+            dispex('D took %.1fs for %i slots, %i frequencies.\n', dt, Ny_, N);
         end
         function Zas = GetInputImpedance(this, fs, excitation)
             if(size(excitation, 1) ~= this.Nx || size(excitation, 2) ~= this.Ny)
@@ -424,13 +526,16 @@ classdef FiniteArray < handle
 end
 
 function v = Z_Integrand_kx(this, f, dy, kx, Ny_, ny, nyp, x, xp, F, Fp)
-    % Retrieve the D matrix for this frequency
+    % Retrieve the correct D index for this frequency.
     fii = find(this.D_fs == f, 1);
-    Ds = this.Ds{fii};
-    D_kxs = this.D_kxs{fii};
     
-    % Interpolate the D matrix at the desired kx
-    D = interp1(D_kxs, Ds, real(kx));
+    % Interpolate the D vectors at the desired kx values
+    D = zeros(length(kx), Ny_);
+    for(nypp = 0:Ny_-1)
+        D(:, nypp+1) = this.D_interpolants{fii, nypp+1}(real(kx));
+%         D(:, nypp+1) = interp1(this.D_kxs{fii, nypp+1}, this.Ds{fii, nypp+1}, real(kx));
+    end
+    
     int2 = zeros(1, length(kx));
     for(kxi = 1:length(kx))
         if(Ny_ == 1) % Indexing D(kxi, :) fails when Ny_ is 1.
@@ -462,11 +567,11 @@ function v = D_Integrand_kyp(f, dy, k0, kyp, kx, tlineup, tlinedown, z0, wslot, 
     [Ghm] = SpectralGF.hm(z0, k0, kx, kyp, Vtm, Vte, itmup, iteup);
     Gxxup = Ghm.xx;
 
-    isTE = 1;    zdownte = tlinedown.GetInputImpedance(isTE, f, k0, kr);
-    isTE = 0;    zdowntm = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
 
-    itedown = 1 ./ zdownte;
-    itmdown = 1 ./ zdowntm;
+    itedown = 1 ./ ztedown;
+    itmdown = 1 ./ ztmdown;
 
     [Ghm] = SpectralGF.hm(z0, k0, kx, kyp, Vtm, Vte, itmdown, itedown);
     Gxxdown = Ghm.xx;

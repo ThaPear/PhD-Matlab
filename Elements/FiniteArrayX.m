@@ -99,39 +99,64 @@ classdef FiniteArrayX < handle
                     lim1, lim2, 'Waypoints', integrationpath);
                 
                 %% Mutual impedances
-%                 % Go to -inf * 1j
-%                 delta = 0.01*k0;
-%                 lim1 = -20j.*k0-1.*delta;
-%                 lim2 = -20j.*k0+1.*delta+1.5*k0;
-%                 % Deform integration path around branch cuts.
-%                 integrationpath = [(-1-1j).*delta, (1+1j).*delta, 1.5*k0+1j.*delta, 1.5*k0+1.*delta];
+                % Go to -inf * 1j
+                delta = 0.01*k0;
+                lim1_2 = -20j.*k0-1.*delta;
+                lim2_2 = -20j.*k0+1.*delta+1.5*k0;
+                % Deform integration path around branch cuts.
+                integrationpath_2 = [(-1-1j).*delta, (1+1j).*delta, 1.5*k0+1j.*delta, 1.5*k0+1.*delta];
                 
                 % Feed to feed
                 xi = 1 .* dx;
                 for(j = 2:Nx_) % N-1 results
                     xj = j .* dx;
-                    Z1n(j) = -1./(2*pi) .* integral(...
-                        @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                     Ffeed, Ffeed, tlineup_, tlinedown_, xi, xj), ...
-                        lim1, lim2, 'Waypoints', integrationpath);
+                    if(abs(xi - xj) < 2*g)
+                        Z1n(j) = -1./(2*pi) .* integral(...
+                            @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
+                                                         Ffeed, Ffeed, tlineup_, tlinedown_, xi, xj), ...
+                            lim1, lim2, 'Waypoints', integrationpath);
+                    else
+                        Z1n(j) = -1./(2*pi) .* integral(...
+                            @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
+                                                         Ffeed, Ffeed, tlineup_, tlinedown_, xi, xj), ...
+                            lim1_2, lim2_2, 'Waypoints', integrationpath_2);
+                    end
                 end
                 % Edge to feed
                 xi = 1 .* dx - dedge_;
                 Zrn = zeros(1,Nx_);
                 for(j = 1:Nx_) % N results
                     xj = j .* dx;
-                    Zrn(j) = -1./(2*pi) .* integral(...
-                        @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                     Fedge, Ffeed, tlineup_, tlinedown_, xi, xj), ...
-                        lim1, lim2, 'Waypoints', integrationpath);
+                    if(abs(xi - xj) < 2*g)
+                        Zrn(j) = -1./(2*pi) .* integral(...
+                            @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
+                                                         Fedge, Ffeed, tlineup_, tlinedown_, xi, xj), ...
+                            lim1, lim2, 'Waypoints', integrationpath);
+                    else
+                        Zrn(j) = -1./(2*pi) .* integral(...
+                            @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
+                                                         Fedge, Ffeed, tlineup_, tlinedown_, xi, xj), ...
+                            lim1_2, lim2_2, 'Waypoints', integrationpath_2);
+                    end
                 end
                 % Edge to edge
                 xi = 1 .* dx - dedge_;
                 xj = Nx_ .* dx + dedge_; % 1 result
-                Zrl = -1./(2*pi) .* integral(...
-                    @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
-                                                 Fedge, Fedge2, tlineup_, tlinedown_, xi, xj), ...
-                    lim1, lim2, 'Waypoints', integrationpath);
+                if(abs(xi - xj) < 2*g)
+                    Zrl = -1./(2*pi) .* integral(...
+                        @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
+                                                     Fedge, Fedge2, tlineup_, tlinedown_, xi, xj), ...
+                        lim1, lim2, 'Waypoints', integrationpath);
+                else
+%                     Zrl_oldpath = -1./(2*pi) .* integral(...
+%                         @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
+%                                                      Fedge, Fedge2, tlineup_, tlinedown_, xi, xj), ...
+%                         lim1, lim2, 'Waypoints', integrationpath);
+                    Zrl = -1./(2*pi) .* integral(...
+                        @(kx) Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, ...
+                                                     Fedge, Fedge2, tlineup_, tlinedown_, xi, xj), ...
+                        lim1_2, lim2_2, 'Waypoints', integrationpath_2);
+                end
                 
                 %% Fill toeplitz Z matrix
                 Zv = [Zrr, fliplr(Zrn), Zrl];
@@ -178,11 +203,11 @@ function v = Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, Fi, Fj, tlin
 
     % Up stratification
     kr = sqrt((kxmat).^2 + (kymat).^2);
-    isTE = 1;    zupte = tlineup.GetInputImpedance(isTE, f, k0, kr);
-    isTE = 0;    zuptm = tlineup.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 1;    zteup = tlineup.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 0;    ztmup = tlineup.GetInputImpedance(isTE, f, k0, kr);
 
-    iteup = 1 ./ zupte;
-    itmup = 1 ./ zuptm;
+    iteup = 1 ./ zteup;
+    itmup = 1 ./ ztmup;
 
     [Ghm] = SpectralGF.hm(z0, k0, kxmat, kymat, Vtm, Vte, itmup, iteup);
     GFxxup = Ghm.xx;
@@ -196,11 +221,11 @@ function v = Z_Integrand(f, k0, z0, kx, ky0, my, dy, wslot, walled, Fi, Fj, tlin
         [kxmat, kymat] = meshgrid(kx, kym);
         kr = sqrt((kxmat).^2 + (kymat).^2);
     end
-    isTE = 1;    zdownte = tlinedown.GetInputImpedance(isTE, f, k0, kr);
-    isTE = 0;    zdowntm = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
 
-    itedown = 1 ./ zdownte;
-    itmdown = 1 ./ zdowntm;
+    itedown = 1 ./ ztedown;
+    itmdown = 1 ./ ztmdown;
 
     [Ghm] = SpectralGF.hm(z0, k0, kxmat, kymat, Vtm, Vte, itmdown, itedown);
     GFxxdown = Ghm.xx;

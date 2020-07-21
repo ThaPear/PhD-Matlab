@@ -49,11 +49,11 @@ classdef InfiniteArray < handle
                 kym = ky0 - 2.*pi.*my./dy_;
                 kr = sqrt((kx0 - 2*pi*mx/dx_).^2 ...
                         + (ky0 - 2*pi*my/dy_).^2);
-                isTE = 1;    zupte = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
-                isTE = 0;    zuptm = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 1;    zteup = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 0;    ztmup = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
                 
-                iteup = 1 ./ zupte;
-                itmup = 1 ./ zuptm;
+                iteup = 1 ./ zteup;
+                itmup = 1 ./ ztmup;
                 
                 [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmup, iteup);
                 GFxxup = Ghm.xx;
@@ -65,11 +65,11 @@ classdef InfiniteArray < handle
                     kr = sqrt((kx0 - 2*pi*mx/dx_).^2 ...
                             + (    - 2*pi*my/dy_).^2);
                 end
-                isTE = 1;    zdownte = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
-                isTE = 0;    zdowntm = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 1;    ztedown = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 0;    ztmdown = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
                 
-                itedown = 1 ./ zdownte;
-                itmdown = 1 ./ zdowntm;
+                itedown = 1 ./ ztedown;
+                itmdown = 1 ./ ztmdown;
                 
                 [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmdown, itedown);
                 GFxxdown = Ghm.xx;
@@ -126,11 +126,11 @@ classdef InfiniteArray < handle
                 kym = ky0 - 2.*pi.*my./dy_;
                 kr = sqrt((kx).^2 ...
                         + (ky0 - 2*pi*my/dy_).^2);
-                isTE = 1;    zupte = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
-                isTE = 0;    zuptm = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 1;    zteup = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 0;    ztmup = this.tlineup.GetInputImpedance(isTE, f, k0, kr);
                 
-                iteup = 1 ./ zupte;
-                itmup = 1 ./ zuptm;
+                iteup = 1 ./ zteup;
+                itmup = 1 ./ ztmup;
                 
                 [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmup, iteup);
                 GFxxup = Ghm.xx;
@@ -143,11 +143,11 @@ classdef InfiniteArray < handle
                             + (    - 2*pi*my/dy_).^2);
                 end
                 
-                isTE = 1;    zdownte = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
-                isTE = 0;    zdowntm = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 1;    ztedown = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 0;    ztmdown = this.tlinedown.GetInputImpedance(isTE, f, k0, kr);
                 
-                itedown = 1 ./ zdownte;
-                itmdown = 1 ./ zdowntm;
+                itedown = 1 ./ ztedown;
+                itmdown = 1 ./ ztmdown;
                 
                 [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmdown, itedown);
                 GFxxdown = Ghm.xx;

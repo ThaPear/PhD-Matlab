@@ -172,11 +172,11 @@ function v = D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp)
     [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmup, iteup);
     Gxxup = Ghm.xx;
 
-    isTE = 1;    zdownte = tlinedown.GetInputImpedance(isTE, f, k0, kr);
-    isTE = 0;    zdowntm = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
 
-    itedown = 1 ./ zdownte;
-    itmdown = 1 ./ zdowntm;
+    itedown = 1 ./ ztedown;
+    itmdown = 1 ./ ztmdown;
 
     [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmdown, itedown);
     Gxxdown = Ghm.xx;
@@ -212,11 +212,11 @@ end
 %     [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmup, iteup);
 %     GFxxup = Ghm.xx;
 %     
-%     isTE = 1;    zdownte = tlinedown.GetInputImpedance(isTE, f, k0, kr);
-%     isTE = 0;    zdowntm = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+%     isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+%     isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
 % 
-%     itedown = 1 ./ zdownte;
-%     itmdown = 1 ./ zdowntm;
+%     itedown = 1 ./ ztedown;
+%     itmdown = 1 ./ ztmdown;
 % 
 %     [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmdown, itedown);
 %     GFxxdown = Ghm.xx;

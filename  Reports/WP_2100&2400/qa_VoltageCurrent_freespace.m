@@ -33,14 +33,14 @@ for(ith = 1:length(ths))
         [z0, z0te, z0tm] = z(1, k0, kz0);
 
         % Calculate currents on slot plane.
-        zupte = tlineup.GetInputImpedance(1, fs, k0, kr);
-        zuptm = tlineup.GetInputImpedance(0, fs, k0, kr);
+        zteup = tlineup.GetInputImpedance(1, fs, k0, kr);
+        ztmup = tlineup.GetInputImpedance(0, fs, k0, kr);
 
-        zdownte = tlinedown.GetInputImpedance(1, fs, k0, kr);
-        zdowntm = tlinedown.GetInputImpedance(0, fs, k0, kr);
+        ztedown = tlinedown.GetInputImpedance(1, fs, k0, kr);
+        ztmdown = tlinedown.GetInputImpedance(0, fs, k0, kr);
 
-        zte = 1 ./ (1 ./ zupte + 1 ./ zdownte);
-        ztm = 1 ./ (1 ./ zuptm + 1 ./ zdowntm);
+        zte = 1 ./ (1 ./ zteup + 1 ./ ztedown);
+        ztm = 1 ./ (1 ./ ztmup + 1 ./ ztmdown);
 
         ite = sin(ph);
         itm = cos(ph);
@@ -48,11 +48,11 @@ for(ith = 1:length(ths))
         vte = ite .* zte;
         vtm = itm .* ztm;
         
-%         iteup = vte ./ zupte;
-%         itmup = vtm ./ zuptm;
+%         iteup = vte ./ zteup;
+%         itmup = vtm ./ ztmup;
         
-        iteup = ite .* zdownte ./ (zupte + zdownte);
-        itmup = itm .* zdowntm ./ (zuptm + zdowntm);
+        iteup = ite .* ztedown ./ (zteup + ztedown);
+        itmup = itm .* ztmdown ./ (ztmup + ztmdown);
 
         % Transform currents through ABCD to top of ADL.
         ABCDte = ABCDMatrix.identity();

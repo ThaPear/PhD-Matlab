@@ -12,7 +12,7 @@ classdef Line < Element
             
             if(length(er) == 1)
                 % Scalar value
-                this.er(1:3) = er;
+                this.er = er;
             elseif(length(er(:)) == 3)
                 % Vector value
                 this.er(1) = er(1);
@@ -28,7 +28,7 @@ classdef Line < Element
             end
             
             if(nargin < 3)
-                this.mu(1:3) = 1;
+                this.mu = 1;
             elseif(length(mu) == 1)
                 % Scalar value
                 this.mu(1:3) = mu;
@@ -51,7 +51,6 @@ classdef Line < Element
         end
         function ABCD = GetABCD(this, isTE, f, k0, kr)
 %             [kd, ~, ~, kzd] = k(f, obj.er, 0, 0);
-            thi = asin(kr./k0);
             
             if(length(this.er) == 1)
                 % Scalar value [er]
@@ -60,6 +59,7 @@ classdef Line < Element
                 zd = Constants.z0 ./ sqrt(this.er);
             else
                 % Vector value [er.x, er.y, er.z]
+                thi = asin(kr./k0);
                 if(isTE)
                     n = sqrt(this.er(2) .* this.mu(1) + (1-this.mu(1)./this.mu(3)).*sin(thi));
                     etad = sqrt(this.mu(1) ./ (this.er(2) - sin(thi).^2 ./ this.mu(3)));
