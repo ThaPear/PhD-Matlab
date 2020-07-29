@@ -112,7 +112,7 @@ classdef FiniteArray < handle
 %                     dispex('nx %i, ny %i, nxp %i, nyp %i\n   x %f, xp %f\n', nx, ny, nxp, nyp, x, xp);
                     
                     z = -dy./(2*pi).* ...
-                        integral(...
+                        fastintegral(...
                             @(kx) Z_Integrand_kx(this, f, dy, kx, Ny_, ny, nyp, x, xp, F, Fp), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     Zvec(in) = z;
@@ -205,7 +205,7 @@ classdef FiniteArray < handle
                     kx = [kx newkx]; %#ok<AGROW> Cannot preallocate due to unknown number of kx.
                     % Calculate D for the new kxs.
                     for(kxi = kxis)
-                        D(kxi) = integral(...
+                        D(kxi) = fastintegral(...
                             @(kyp) D_Integrand_kyp_old(f, dy, k0, kyp, kx(kxi), tlineup_, tlinedown_, z0, wslot, nypp), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     end
@@ -565,9 +565,9 @@ function v = Z_Integrand_kx(this, f, dy, kx, Ny_, ny, nyp, x, xp, F, Fp)
     int2 = zeros(1, length(kx));
     for(kxi = 1:length(kx))
         if(Ny_ == 1) % Indexing D(kxi, :) fails when Ny_ is 1.
-            int2(kxi) = integral(@(ky) Z_Integrand_ky(ky, Ny_, ny, nyp, dy, D(kxi)), -pi/dy, pi./dy);
+            int2(kxi) = fastintegral(@(ky) Z_Integrand_ky(ky, Ny_, ny, nyp, dy, D(kxi)), -pi/dy, pi./dy);
         else
-            int2(kxi) = integral(@(ky) Z_Integrand_ky(ky, Ny_, ny, nyp, dy, D(kxi, :)), -pi/dy, pi./dy);
+            int2(kxi) = fastintegral(@(ky) Z_Integrand_ky(ky, Ny_, ny, nyp, dy, D(kxi, :)), -pi/dy, pi./dy);
         end
     end
     v = int2 .* Fp(kx) .* F(-kx) .* exp(-1j .* kx .* (x-xp));
