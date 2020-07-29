@@ -71,8 +71,6 @@ classdef FiniteArray < handle
                 % termination.
                 Fleft = @(kx) Fright(-kx); 
                 
-                
-                
                 %% Integration limits & path
                 % Go to +-inf
                 delta = 0.01.*k0;
@@ -151,7 +149,6 @@ classdef FiniteArray < handle
             z0 = Constants.z0;
             c0 = Constants.c0;
             
-            
             newfs = setdiff(fs, this.D_fs);
             
             % Create a list of all f and nypp combinations
@@ -206,12 +203,13 @@ classdef FiniteArray < handle
                     kxis = length(kx)+1:(length(kx) + length(newkx));
                     % Append new kxs.
                     kx = [kx newkx]; %#ok<AGROW> Cannot preallocate due to unknown number of kx.
-                    % Calculate D for new kxs.
+                    % Calculate D for the new kxs.
                     for(kxi = kxis)
                         D(kxi) = integral(...
                             @(kyp) D_Integrand_kyp(f, dy, k0, kyp, kx(kxi), tlineup_, tlinedown_, z0, wslot, nypp), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     end
+                    
                     % Sort kx based on the real part.
                     [kx, I] = sort(kx, 'ComparisonMethod', 'real');
                     D = D(I);
@@ -223,10 +221,6 @@ classdef FiniteArray < handle
                     % Determine the points where D must be sampled more.
                     % The +1 arises from the indexing used for the derivatives.
                     ind = find(abs(ddD) > errorbound) + 1;
-%                     ind(ind == length(kx)) = [];
-                    if(max(ind) == length(kx))
-                        error('Should not reach %i.\n', length(kx));
-                    end
                     
                     % If there's no new indices, we're done.
                     if(isempty(ind))
@@ -235,10 +229,6 @@ classdef FiniteArray < handle
                     end
                     % Since we will sample after each point, add the previous points as well.
                     ind = unique([ind-1, ind]);
-%                     ind(ind == 0) = [];
-                    if(min(ind) == 0)
-                        error('Should not reach 0.\n');
-                    end
                     % Determine the new kx values to sample at.
                     newkx = (kx(ind) + kx(ind+1))/2;
 %                     dispex('Calculating %i new values on iteration %i.\n', length(newkx), it);
@@ -312,7 +302,7 @@ classdef FiniteArray < handle
             end
             delete(hWaitbar);
             dt = toc(tc);
-            dispex('D took %.1fs for %i slots, %i frequencies.\n', dt, Ny_, N);
+            dispex('D took %.1fs for %i slots, %i frequencies.\n', dt, Ny_, length(newfs));
         end
         function Zas = GetInputImpedance(this, fs, excitation)
             if(size(excitation, 1) ~= this.Nx || size(excitation, 2) ~= this.Ny)
@@ -521,6 +511,42 @@ classdef FiniteArray < handle
                 brick.Zrange('0', '0');
                 brick.Material('PEC');
                 brick.Create();
+        end
+        function Zred = ReducedZMatrix(this, fs)
+            tc = tic;
+            Zred = cell(1, length(fs));
+            for(fi = 1:length(fs))
+                Zmati = this.Zmat{fi};
+                
+                % Load the edge terminations with shorts, then define the loaded section of the
+                % matrix as the elements with a short, and the nonloaded section as the elements
+                % without a short.
+                % The reduced Z-matrix can then be calculated with the input impedance equation
+                % Zin = Z11 - Z12*Z21/(Z22+ZL)
+                
+                % Build logical index vector denoting whether or not it's a nonloaded element
+                % E.g. for 4x4: % 0 1 1 0  0 1 1 0  0 1 1 0  0 1 1 0
+                iNL = logical(repmat([0, ones(1, this.Nx), 0], 1, this.Ny));
+
+                % Nonloaded - The part of the Z-matrix that does not include the terminations
+                ZNL = Zmati(iNL, iNL);
+
+                % Loaded - The inverse of the nonloaded part of the matrix
+                ZL = Zmati(~iNL, ~iNL);
+                
+                % Nonloaded-loaded
+                ZNLL = Zmati(iNL, ~iNL);
+                
+                % Loaded-nonloaded
+                ZLNL = Zmati(~iNL, iNL);
+                
+                % Matrix version of the input impedance calculation
+                % Yields the reduced Z-matrix without the terminations
+                Zred{fi} = ZNL - ZNLL * pinv(ZL) * ZLNL;
+            end
+            
+            dt = toc(tc);
+            dispex('Reducing Z took %.1fms for %ix%i elements, %i frequencies.\n', dt*1e3, Nx_, Ny_, Nf);
         end
     end
 end
