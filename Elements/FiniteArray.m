@@ -206,7 +206,7 @@ classdef FiniteArray < handle
                     % Calculate D for the new kxs.
                     for(kxi = kxis)
                         D(kxi) = integral(...
-                            @(kyp) D_Integrand_kyp(f, dy, k0, kyp, kx(kxi), tlineup_, tlinedown_, z0, wslot, nypp), ...
+                            @(kyp) D_Integrand_kyp_old(f, dy, k0, kyp, kx(kxi), tlineup_, tlinedown_, z0, wslot, nypp), ...
                             lim1, lim2, 'Waypoints', integrationpath);
                     end
                     
@@ -582,7 +582,52 @@ end
 function v = D_Integrand_kyp(f, dy, k0, kyp, kx, tlineup, tlinedown, z0, wslot, nypp)
     Vtm = 1;
     Vte = 1;
+    
+    tlineupfs = FreeSpace();
+    tlinedownfs = FreeSpace();
+    error
+    kr = sqrt(kx.^2 + kyp.^2);
+    
+    % Use the real Green's function inside this interval, otherwise use FreeSpace
+    % The ratio of abs(kyp)/k0 varies for different error levels
+    %     Values determined for an er=3.0 ADL
+    %     Error | 1e-1  | 1e-2  | 1e-3  | 1e-4  | 1e-5  | 1e-6  | 1e-7  | 1e-8  | 1e-9  | 1e-10
+    %     ratio |  1.12 |  1.90 |  4.57 |  7.80 | 10.80 | 13.25 | 14.80 | 22.81 | 26.93 | 30.26 
+    ratio = 10;
+    iRealGF = (abs(kyp) < ratio*k0);
+    zteup = zeros(size(kr));    ztmup = zteup;    ztedown = zteup;    ztmdown = zteup;
+    
+    isTE = 1;    zteup(iRealGF) = tlineup.GetInputImpedance(isTE, f, k0, kr(iRealGF));
+    isTE = 0;    ztmup(iRealGF) = tlineup.GetInputImpedance(isTE, f, k0, kr(iRealGF));
+    isTE = 1;    zteup(~iRealGF) = tlineupfs.GetInputImpedance(isTE, f, k0, kr(~iRealGF));
+    isTE = 0;    ztmup(~iRealGF) = tlineupfs.GetInputImpedance(isTE, f, k0, kr(~iRealGF));
 
+    iteup = 1 ./ zteup;
+    itmup = 1 ./ ztmup;
+
+    [Ghm] = SpectralGF.hm(z0, k0, kx, kyp, Vtm, Vte, itmup, iteup);
+    Gxxup = Ghm.xx;
+
+    isTE = 1;    ztedown(iRealGF) = tlinedown.GetInputImpedance(isTE, f, k0, kr(iRealGF));
+    isTE = 0;    ztmdown(iRealGF) = tlinedown.GetInputImpedance(isTE, f, k0, kr(iRealGF));
+    isTE = 1;    ztedown(~iRealGF) = tlinedownfs.GetInputImpedance(isTE, f, k0, kr(~iRealGF));
+    isTE = 0;    ztmdown(~iRealGF) = tlinedownfs.GetInputImpedance(isTE, f, k0, kr(~iRealGF));
+
+    itedown = 1 ./ ztedown;
+    itmdown = 1 ./ ztmdown;
+
+    [Ghm] = SpectralGF.hm(z0, k0, kx, kyp, Vtm, Vte, itmdown, itedown);
+    Gxxdown = Ghm.xx;
+
+    Gxx = Gxxup + Gxxdown;
+
+    v = Gxx.*besselj(0, kyp.*wslot./2).*exp(-1j.*kyp.*nypp.*dy);
+end
+
+function v = D_Integrand_kyp_old(f, dy, k0, kyp, kx, tlineup, tlinedown, z0, wslot, nypp)
+    Vtm = 1;
+    Vte = 1;
+    
     kr = sqrt(kx.^2 + kyp.^2);
     isTE = 1;    zteup = tlineup.GetInputImpedance(isTE, f, k0, kr);
     isTE = 0;    ztmup = tlineup.GetInputImpedance(isTE, f, k0, kr);
