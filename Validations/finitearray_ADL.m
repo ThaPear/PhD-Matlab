@@ -1,4 +1,4 @@
-% close all;
+close all;
 closewaitbars;
 clearvars -except array;
 SetupPath;
@@ -17,19 +17,23 @@ dx = 0.45*l0;
 dy = dx;
 wslot = 0.05*l0;
 dslot = 0.05*l0;
-walled = 0;
+walled = 1;
 dedge = 0.25*l0;
 zfeed = 100;
 
 % Number of unit cells.
 Nxs = 1:5;
 Nys = 1:5;
+Nxs = 2;
+Nys = 2;
+Nxs = 15;%10:5:30;
 for(Nx = Nxs)
+    Nys = Nx;
     for(Ny = Nys)
 
         excitation = ones(Nx, Ny);
 
-        tlineup = FreeSpace();
+        tlineup = TerminatedTLine(StagedADS(dx/2, l0/4, 3, 1, f0), FreeSpace());
         tlinedown = ShortedLine(1, 0.25*l0);
 
         slot = Slot(dx, dy, wslot, dslot, walled);
@@ -40,21 +44,23 @@ for(Nx = Nxs)
         end
 
         %% Determine path to place the CST files
+        skipCST = 0;
         [~, hostname] = system('hostname'); hostname = strsplit(hostname, '\n');
 
         touchstonepath = sprintf('H:\\Git\\PhD-Matlab\\Validations\\%s\\', mfilename);
         if(strcmp(hostname{1}, 'SRV539'))
             path = sprintf('E:\\data\\Sander\\Finite_Array\\Validations\\%s\\', mfilename);
         elseif(strcmp(hostname{1}, 'TUD211735'))
+            skipCST = 1;
             path = sprintf('E:\\ Simulations\\Finite_Array\\Validations\\%s\\', mfilename);
         else
             path = touchstonepath;
         end
-        filename = sprintf('%ix%i_br', Nx, Ny);
+        filename = sprintf('%ix%i_adl', Nx, Ny);
         filepath = [path, filename];
         touchstonefilepath = [touchstonepath, filename];
 
-        if(~exist(sprintf('%s.s%ip', filepath, Nx*Ny), 'file'))
+        if(~skipCST && ~exist(sprintf('%s.s%ip', filepath, Nx*Ny), 'file'))
             dispex('Running CST simulation for %ix%i.\n', Nx, Ny);
             tc = tic;
             project = CST.InitializeBasicProject();
@@ -79,7 +85,7 @@ for(Nx = Nxs)
             if(~fdsolver.Start()); dispex('CST simulation failed.'); return; end
             dt_CST = toc(tc);
             dispex('CST took %.1fs for %ix%i elements.\n', dt_CST, Nx, Ny);
-
+            
             touchstone = project.TOUCHSTONE();
             touchstone.Reset();
             touchstone.Impedance(zfeed);

@@ -4,7 +4,7 @@ clear;
 SetupPath;
 clear global;
 
-f0 = 31e9;
+f0 = 20e9;
 c0 = Constants.c0;
 l0 = c0/f0;
 
@@ -17,10 +17,9 @@ dedge = 0.25*l0;
 zfeed = 100;
 
 % Number of unit cells.
-Nx = 10;
+Nx = 3;
 
-fs = (12:1:52)*1e9;
-% fs = 20e9;
+fs = 20e9;
 
 ax = ones(1,Nx);
 
@@ -37,14 +36,15 @@ ph = 0 * pi/180;
 tic;
 Zas = array.GetInputImpedance(fs, th, ph);
 toc
-%%
+
+[x, v] = array.Voltage(fs, th, ph);
+
 [hFig, hAx] = figureex;
-    hAx.ColorOrder = lines(min(Nx, 7));%reshape(repmat(lines(7), 1, 2).', [], 14).';
-    hAx.LineStyleOrder = {'-', '--', ':', '-.'};
-    plot(hAx, fs./1e9, real(Zas));
-    addlegendentry(hAx, 'Real');
-    plot(hAx, fs./1e9, imag(Zas), '--');
-    addlegendentry(hAx, 'Imag');
+    repeatcolormap(hAx, 3);
+    plot(hAx, x, real(v));
+    plot(hAx, x, imag(v), '--');
+    plot(hAx, x, abs(v), ':');
+    
 %%
 % global kxpath
 % figureex;

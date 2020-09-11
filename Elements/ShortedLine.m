@@ -43,7 +43,8 @@ classdef ShortedLine < Element
                 end
             end
             componentname = [parentcomponent, 'BackingReflector'];
-            project.MakeSureParameterExists('hback', this.L*1e3);
+%             project.MakeSureParameterExists('hback', this.L*1e3);
+            project.StoreParameter('hback', this.L*1e3);
             
             % Create the metal plate.
             brick = project.Brick();

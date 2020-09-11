@@ -173,6 +173,7 @@ classdef Slot
             % Build walls if needed.
             if(this.walled)
                 project.MakeSureParameterExists('dwall', 0);
+                project.MakeSureParameterExists('hback', 1);
                 brick.Reset();
                 brick.Name('Walls');
                 brick.Component(componentname);

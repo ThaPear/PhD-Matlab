@@ -13,6 +13,9 @@ classdef Line < Element
             if(length(er) == 1)
                 % Scalar value
                 this.er = er;
+                if(nargin > 2)
+                    this.er(1:length(mu)) = er;
+                end
             elseif(length(er(:)) == 3)
                 % Vector value
                 this.er(1) = er(1);
@@ -28,10 +31,10 @@ classdef Line < Element
             end
             
             if(nargin < 3)
-                this.mu = 1;
+                this.mu = ones(size(this.er));
             elseif(length(mu) == 1)
                 % Scalar value
-                this.mu(1:3) = mu;
+                this.mu(1:length(this.er)) = mu;
             elseif(length(mu(:)) == 3)
                 % Vector value
                 this.mu(1) = mu(1);
@@ -50,6 +53,7 @@ classdef Line < Element
             error('%s::GetInputImpedance:\n\tInput impedance is not valid on a Line element.\n\tUse a shunt element or an open/shorted/terminated line.', mfilename);
         end
         function ABCD = GetABCD(this, isTE, f, k0, kr)
+            % ABCD = GetABCD(this, isTE, f, k0, kr)
 %             [kd, ~, ~, kzd] = k(f, obj.er, 0, 0);
             
             if(length(this.er) == 1)
@@ -126,20 +130,22 @@ classdef Line < Element
             end
             
             if(length(this.er) > 1 || this.er ~= 1 || length(this.mu) > 1 || this.mu ~= 1)
+                er_ = repmat(this.er, 1, 4-length(this.er)); % Ensure er is 1 by 3.
+                mu_ = repmat(this.mu, 1, 4-length(this.mu)); % Ensure mu is 1 by 3.
                 % Create necessary material
                 material = project.Material();
                 material.Reset();
-                materialname = [num2str(this.er(1), 5), '_', num2str(this.er(2), 5), '_', num2str(this.er(3), 5)];
+                materialname = [num2str(er_(1), 5), '_', num2str(er_(2), 5), '_', num2str(er_(3), 5)];
                 material.Name(materialname);
                 material.Folder('Generated');
-                material.Colour(0, min(1, this.er(1)/20), 1);
+                material.Colour(0, min(1, er_(1)/20), 1);
                 material.Type('Anisotropic');
-                material.EpsilonX(this.er(1));
-                material.EpsilonY(this.er(2));
-                material.EpsilonZ(this.er(3));
-                material.MuX(this.mu(1));
-                material.MuY(this.mu(2));
-                material.MuZ(this.mu(3));
+                material.EpsilonX(er_(1));
+                material.EpsilonY(er_(2));
+                material.EpsilonZ(er_(3));
+                material.MuX(mu_(1));
+                material.MuY(mu_(2));
+                material.MuZ(mu_(3));
                 material.Transparency(0.5);
                 material.Create();
 

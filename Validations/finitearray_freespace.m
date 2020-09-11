@@ -8,6 +8,11 @@ f0 = 31e9;
 c0 = Constants.c0;
 l0 = c0/f0;
 
+fs = (10:2.5:35) * 1e9;
+
+th = eps * pi/180;
+ph = 0 * pi/180;
+
 dx = 0.45*l0;
 dy = dx;
 wslot = 0.05*l0;
@@ -17,8 +22,10 @@ dedge = 0.25*l0;
 zfeed = 100;
 
 % Number of unit cells.
-Nxs = 1:5;
-Nys = 1:5;
+% Nxs = 1:5;
+% Nys = 1:5;
+Nxs = 3;
+Nys = 3;
 for(Nx = Nxs)
     for(Ny = Nys)
 
@@ -30,26 +37,27 @@ for(Nx = Nxs)
         slot = Slot(dx, dy, wslot, dslot, walled);
 
 
-        fs = (10:2.5:35) * 1e9;
-
-        th = eps * pi/180;
-        ph = 0 * pi/180;
-
-        array = FiniteArray(slot, tlineup, tlinedown, Nx, Ny, dedge, zfeed);
+        if(~exist('array', 'var') || ~isa(array, 'FiniteArray') || array.Nx ~= Nx || array.Ny ~= Ny)
+            array = FiniteArray(slot, tlineup, tlinedown, Nx, Ny, dedge, zfeed);
+        end
 
         %% Determine path to place the CST files
         [~, hostname] = system('hostname'); hostname = strsplit(hostname, '\n');
+
+        touchstonepath = sprintf('H:\\Git\\PhD-Matlab\\Validations\\%s\\', mfilename);
         if(strcmp(hostname{1}, 'SRV539'))
             path = sprintf('E:\\data\\Sander\\Finite_Array\\Validations\\%s\\', mfilename);
         elseif(strcmp(hostname{1}, 'TUD211735'))
             path = sprintf('E:\\ Simulations\\Finite_Array\\Validations\\%s\\', mfilename);
         else
-            path = sprintf('H:\\Git\\PhD-Matlab\\Validations\\%s\\', mfilename);
+            path = touchstonepath;
         end
         filename = sprintf('%ix%i_fs', Nx, Ny);
         filepath = [path, filename];
+        touchstonefilepath = [touchstonepath, filename];
 
         if(~exist(sprintf('%s.s%ip', filepath, Nx*Ny), 'file'))
+            dispex('Running CST simulation for %ix%i.\n', Nx, Ny);
             tc = tic;
             project = CST.InitializeBasicProject();
 
@@ -65,28 +73,45 @@ for(Nx = Nxs)
 
             array.BuildCST(project);
 
+            project.Rebuild();
             project.SaveAs([filepath, '.cst'], 0);
 
             % Calculate in CST
             fdsolver = project.FDSolver();
-            if(~fdsolver.Start()); disp('Simulation failed.'); return; end
-            dt = toc(tc);
-            dispex('CST took %.1fs for %ix%i elements.\n', dt, Nx, Ny);
+            if(~fdsolver.Start()); dispex('CST simulation failed.'); return; end
+            dt_CST = toc(tc);
+            dispex('CST took %.1fs for %ix%i elements.\n', dt_CST, Nx, Ny);
 
             touchstone = project.TOUCHSTONE();
             touchstone.Reset();
             touchstone.Impedance(zfeed);
             touchstone.Renormalize(1);
-            touchstone.FileName(filepath);
+            touchstone.FileName(touchstonefilepath);
             touchstone.Write();
 
             project.Quit();
+        else
+            dispex('CST simulation results already exist for %ix%i.\n', Nx, Ny);
         end
 
         % Calculate in MATLAB
+        matpath = sprintf('H:\\Git\\PhD-Matlab\\Validations\\%s\\%ix%i', mfilename, Nx, Ny);
+        savematlabresults = 1;
+        if(exist(sprintf('%s.mat', matpath), 'file'))
+            load(sprintf('%s.mat', matpath), 'array');
+            savematlabresults = 0;
+        end
+        tc = tic;
+        array.InitializeDs(fs);
+        array.InitializeZMatrix(fs);
         Zas = array.GetInputImpedance(fs, excitation);
+        if(savematlabresults)
+            save(sprintf('H:\\Git\\PhD-Matlab\\Validations\\%s\\%ix%i', mfilename, Nx, Ny), 'array');
+        end
+        dt_ML = toc(tc);
+        dispex('MATLAB took %.1fs for %ix%i elements.\n', dt_ML, Nx, Ny);
 
-        [parameters, S] = CST.LoadData(sprintf('%s.s%ip', filepath, Nx*Ny));
+        [parameters, S] = CST.LoadData(sprintf('%s.s%ip', touchstonefilepath, Nx*Ny));
         fsCST = parameters.frequencies;
 
         %% Define indices in the S matrix for the port at position nx, ny.
@@ -123,7 +148,7 @@ for(Nx = Nxs)
 %             end
 %         end
 
-        figureex;
+        hFig = figureex;
         for(nx = 1:Nx)
             for(ny = 1:Ny)
                 hAx = subplot(Nx, Ny, ny+(nx-1)*Ny);
@@ -136,6 +161,10 @@ for(Nx = Nxs)
                 plot(hAx, fs/1e9, squeeze(imag(Zas(nx, ny, :))), 'r--');
             end
         end
-        legend(hAx, {'reCST', 'imCST', 'reMATLAB', 'imMATLAB'})
+        legend(hAx, {'reCST', 'imCST', 'reMATLAB', 'imMATLAB'});
+        
+        if(savematlabresults)
+            savefig(hFig, sprintf('H:\\Git\\PhD-Matlab\\Validations\\%s\\figures\\%ix%i', mfilename, Nx, Ny));
+        end
     end
 end
