@@ -1,4 +1,4 @@
-classdef FiniteArrayY
+classdef FiniteArrayY < handle
     properties
         unitcell % Unit cell in the finite array
         
@@ -10,6 +10,19 @@ classdef FiniteArrayY
         zfeed % Impedance of the feeding network.
         
         numM % Number of modes to sum (-numM:numM). Default -10:10.
+        
+        Dmys
+        Dmy_fs
+        Dmy_th
+        Dmy_ph
+        
+        Zmat
+        Zmat_fs
+        Zmat_th
+        Zmat_ph
+        
+        ints
+        ints_fs
     end
     methods
         function this = FiniteArrayY(unitcell, tlineup, tlinedown, Ny, ay, zfeed)
@@ -26,58 +39,150 @@ classdef FiniteArrayY
             
             this.numM = 20;
         end
-        function Zas = GetInputImpedance(this, fs, th, ph)
-            mx = [-this.numM:this.numM].';
+        function InitializeDs(this, fs, th, ph)
+            if(~isempty(this.Dmy_th) && ~isempty(this.Dmy_ph) && (this.Dmy_th ~= th || this.Dmy_ph ~= ph))
+                % If the angle is different, simply wipe it.
+                this.Dmys = [];
+                this.Dmy_fs = [];
+                this.Dmy_th = [];
+                this.Dmy_ph = [];
+            end
+            newfs = setdiff(fs, this.Dmy_fs);
+            if(length(newfs) < 1)
+                return;
+            end
+            
+            dispex('Ds: Calculating for %i frequencies, %i slots, %i modes.\n', length(newfs), this.Ny, this.numM*2+1);
+            tc = tic;
             
             dx = this.unitcell.dx;
             dy = this.unitcell.dy;
             wslot = this.unitcell.wslot;
-            dslot = this.unitcell.dslot;
+            % dslot = this.unitcell.dslot;
             
             z0 = Constants.z0;
-            ay_ = this.ay;
-            nyp = 1:this.Ny;
             
-            Nf = length(fs);
-            Ny_ = this.Ny;
-            zfeed_ = this.zfeed;
+            mxs = [-this.numM:this.numM].';
+            nyps = 1:this.Ny;
+            Nf = length(newfs);
 
             tlineup_ = this.tlineup;
             tlinedown_ = this.tlinedown;
+            
+            [mximat, nypimat, fimat] = ndgrid(1:length(mxs), 1:length(nyps), 1:Nf);
+            mximat = mximat(:);
+            nypimat = nypimat(:);
+            fimat = fimat(:);
+            
+            Ni = length(fimat);
+            
             %% Initialize progress bar
             hDataQueue = parallel.pool.DataQueue;
             hWaitbar = waitbar(0, {'0% Initializing...', ''});
             afterEach(hDataQueue, @updateWaitbar);
-            progress = -1; send(hDataQueue, nan);
+            progressStep = 10;
+            progress = -progressStep; send(hDataQueue, nan);
             
-            Zas = zeros(this.Ny, Nf);
-            parfor(fi = 1:Nf)
-                f = fs(fi);
-                Z = zeros(1, Ny_);
+            Dmys_ = zeros(1, Ni);
+            parfor(ni = 1:Ni) % parfor
+                f = newfs(fimat(ni)); %#ok<PFBNS> Broadcast variable.
+                mx = mxs(mximat(ni)); %#ok<PFBNS> Broadcast variable.
+                nyp = nyps(nypimat(ni)); %#ok<PFBNS> Broadcast variable.
 
                 [k0, kx0, ~, ~] = k(f, 1, th, ph);
                 kxm = kx0 - 2*pi*mx/dx;
+                
+                delta = 0.01*k0;
+                kxm = kxm + 1j .* delta .* sign(kxm);
 
                 %% Calculate the integral for D
                 delta = 0.01.*k0;
-                lim1 = -200.*k0-1j.*delta;
+                lim1 = -100.*k0-1j.*delta;
                 lim2 = -lim1;
                 % Deform integration path around branch cuts.
                 integrationpath = [(-1-1j).*delta, (1+1j).*delta];
                 % Loop version - faster
-                Dmy = zeros(length(kxm), length(nyp));
-                for(kxmi = 1:length(kxm))
-                    for(nypi = 1:length(nyp))
-                        Dmy(kxmi, nypi) = 1/(2*pi) .* integral(...
-                            @(ky) D_Integrand(f, dy, k0, ky, kxm(kxmi), tlineup_, tlinedown_, z0, wslot, nyp(nypi)), ...
-                            lim1, lim2, 'Waypoints', integrationpath);
-                    end
+                Dmys_(ni) = -1/(2*pi) .* integral(...
+                    @(ky) D_Integrand(f, dy, k0, ky, kxm, tlineup_, tlinedown_, z0, wslot, nyp), ...
+                    lim1, lim2, 'Waypoints', integrationpath);
+                if(abs(Dmys_(ni)) < eps)
+                    dispex('Nope\n');
                 end
                 % ArrayValued version
 %                 Dmy = 1/(2*pi) .* integral(...
 %                     @(ky) D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp), ...
 %                     lim1, lim2, 'Waypoints', integrationpath, ...
 %                     'ArrayValued', 1);
+                if(mod(ni, progressStep) == 0)
+                    send(hDataQueue, nan);
+                end
+            end
+            this.Dmy_fs = [this.Dmy_fs, newfs];
+            Dmat = reshape(Dmys_, length(mxs), length(nyps), length(newfs));
+            for(fi = 1:length(newfs))
+                this.Dmys(:, :, this.Dmy_fs == newfs(fi)) = Dmat(:, :, fi);
+            end
+            this.Dmy_th = th;
+            this.Dmy_ph = ph;
+            
+            function updateWaitbar(~)
+                progress = progress + progressStep;
+                waitbar(progress/Ni, hWaitbar, ...
+                    {sprintf('%.1f%% Calculating D...', progress/Ni*100), ...
+                     sprintf('%i/%i iterations done.', progress, Ni)});
+            end
+            delete(hWaitbar);
+            
+            dt = toc(tc);
+            dispex('Ds: Completed in %s.\n', fancyduration(dt));
+        end
+        function InitializeZMatrix(this, fs, th, ph)
+            if(~isempty(this.Zmat_th) && ~isempty(this.Zmat_ph) && (this.Zmat_th ~= th || this.Zmat_ph ~= ph))
+                % If the angle is different, simply wipe it.
+                this.Zmat = [];
+                this.Zmat_fs = [];
+                this.Zmat_th = [];
+                this.Zmat_ph = [];
+            end
+            
+            newfs = setdiff(fs, this.Zmat_fs);
+            if(length(newfs) < 1)
+                return;
+            end
+            this.InitializeDs(newfs, th, ph);
+            
+            dispex('Z matrix: Calculating for %i frequencies, %i slots.\n', length(newfs), this.Ny);
+            tc = tic;
+            
+            dx = this.unitcell.dx;
+            dy = this.unitcell.dy;
+            % wslot = this.unitcell.wslot;
+            dslot = this.unitcell.dslot;
+            
+            mxs = [-this.numM:this.numM].';
+            nyps = 1:this.Ny;
+            Nf = length(newfs);
+            
+            %% Initialize progress bar
+            hDataQueue = parallel.pool.DataQueue;
+            hWaitbar = waitbar(0, {'0% Initializing...', ''});
+            afterEach(hDataQueue, @updateWaitbar);
+            progressStep = 1;
+            progress = -progressStep; send(hDataQueue, nan);
+            
+            % TODO: Can unpack this and use fi to index, which allows slicing of the variable.
+            Dmys_ = this.Dmys;
+            Dmy_fs_ = this.Dmy_fs;
+            
+            ints = zeros(length(mxs), this.Ny, Nf);
+            Zmat_ = zeros(this.Ny, this.Ny, Nf);
+            % TODO: Can be sliced into fi, kxm, and nyp for more parallelization.
+            parfor(fi = 1:Nf) % parfor
+                f = newfs(fi);
+                Dmy = Dmys_(:, :, Dmy_fs_ == f); %#ok<PFBNS> Broadcast variable
+
+                [~, kx0, ~, ~] = k(f, 1, th, ph);
+                kxm = kx0 - 2*pi*mxs/dx;
 
                 %% Calculate the integral for Z
                 lim1 = -pi/dy;
@@ -93,35 +198,41 @@ classdef FiniteArrayY
 %                 end
                 % ArrayValued version - equally fast but simpler.
                 int = integral(...
-                    @(ky) Z_Integrand(ky, dy, 1, nyp, Dmy), ...
+                    @(ky) Z_Integrand(ky, dy, 1, nyps, Dmy), ...
                     lim1, lim2, ...
                     'ArrayValued', 1);
                 
+                ints(:, :, fi) = int;
+                
                 %% Perform the sum for Z & build Z matrix
-                Zv = 1./dx .* sum(-sinc(kxm.*dslot./(2*pi)).^2 .* dy./(2*pi) .* int, 1);
+                Zv = 1./dx .* sum(sinc(kxm.*dslot./(2*pi)).^2 .* dy./(2*pi) .* int, 1);
                 
                 % Build the toeplitz matrix
-                Z = toeplitz(real(Zv)) + 1j .* toeplitz(imag(Zv));
-                % Add ZL
-                Zp = Z + eye(Ny_) .* zfeed_;
-                
-                %% Solve the equivalent circuit and find Zactive
-                i = ay_;
-                % Solve for v
-                v = Zp\(zfeed_*Z*i.'); % Identical to v = pinv(Zp) * (zfeed_*Z*i.');
-                % Calculate input impedance
-                Yas = i.' ./ v - 1./zfeed_;
-                Zas(:, fi) = 1./Yas;
+                Zmat_(:, :, fi) = toeplitz(real(Zv)) + 1j .* toeplitz(imag(Zv));
                 
                 send(hDataQueue, nan);
             end
+            this.ints_fs = [this.ints_fs, newfs];
+            for(fi = 1:length(newfs))
+                this.ints(:, :, this.ints_fs == newfs(fi)) = ints(:, :, fi);
+            end
+            this.Zmat_fs = [this.Zmat_fs, newfs];
+            for(fi = 1:length(newfs))
+                this.Zmat(:, :, this.Zmat_fs == newfs(fi)) = Zmat_(:, :, fi);
+            end
+            this.Zmat_th = th;
+            this.Zmat_ph = ph;
+            
             function updateWaitbar(~)
-                progress = progress + 1;
+                progress = progress + progressStep;
                 waitbar(progress/Nf, hWaitbar, ...
                     {sprintf('%.1f%% Calculating Z Matrix...', progress/Nf*100), ...
                      sprintf('%i/%i frequencies done.', progress, Nf)});
             end
             delete(hWaitbar);
+            
+            dt = toc(tc);
+            dispex('Z matrix: Completed in %s.\n', fancyduration(dt));
             
             %% Old method (Thesis Riccardo)
 %             Zas = zeros(this.Ny, length(fs));
@@ -155,6 +266,44 @@ classdef FiniteArrayY
 %                 Zas(:, fi) = Zs;
 %             end
         end
+        
+        function Zas = GetInputImpedance(this, fs, th, ph)
+            this.InitializeDs(fs, th, ph);
+            this.InitializeZMatrix(fs, th, ph);
+            
+            dispex('Active Z: Calculating for %i frequencies, %i slots.\n', length(fs), this.Ny);
+            tc = tic;
+            
+            Nf = length(fs);
+            
+            Zmat_ = this.Zmat;
+            Zmat_fs_ = this.Zmat_fs;
+            
+            Ny_ = this.Ny;
+            ay_ = this.ay;
+            
+            zfeed_ = this.zfeed;
+            
+            Zas = zeros(this.Ny, Nf);
+            parfor(fi = 1:Nf) % parfor
+                f = fs(fi);
+                Z = Zmat_(:, :, Zmat_fs_ == f); %#ok<PFBNS> Broadcast variable
+                
+                % Add ZL
+                Zp = Z + eye(Ny_) .* zfeed_;
+                
+                %% Solve the equivalent circuit and find Zactive
+                i = ay_;
+                % Solve for v
+                v = Zp\(zfeed_*Z*i.'); % Identical to v = pinv(Zp) * (zfeed_*Z*i.');
+                % Calculate input impedance
+                Yas = i.' ./ v - 1./zfeed_;
+                Zas(:, fi) = 1./Yas;
+            end
+            
+            dt = toc(tc);
+            dispex('Active Z: Completed in %s.\n', fancyduration(dt));
+        end
     end
 end
 
@@ -184,6 +333,9 @@ function v = D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp)
     Gxx = Gxxup + Gxxdown;
 
     v = Gxx.*besselj(0, ky.*wslot./2).*exp(-1j.*ky.*dy.*(nyp-1));
+    
+    % Assume anything that is NaN can be approximated by 0.
+    v(isnan(v)) = 0;
 end
 
 function v = Z_Integrand(ky, dy, ny, nyp, Dmy)
