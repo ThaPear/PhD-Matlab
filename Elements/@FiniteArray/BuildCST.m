@@ -11,7 +11,6 @@ function BuildCST(this, project, parentcomponent)
     this.unitcell.BuildCST(project, [componentname, '/UnitCell']);
 
     wcs = project.WCS();
-%     obj.tlineup.BuildCST(project); 
     wcs.Enable(); 
     wcs.Store('Pre-Slot'); 
     wcs.RotateWCS('u', 180); 
@@ -37,12 +36,12 @@ function BuildCST(this, project, parentcomponent)
 %     project.StoreParameter('padding_y', 'max(0, lambda_min/4-(dy/2-slot_width/2))');
     % Round up the X padding to a multiple of dx, to ensure a good fit of the stratification
     % above the unit cells.
-%         goal_x = max(-Int(-(lambda_min/4+edge_distance)/dx)*dx, -Int(-(edge_length+edge_distance-dx/2)/dx)*dx)
+    %     goal_x = max(-Int(-(lambda_min/4+edge_distance)/dx)*dx, -Int(-(edge_length+edge_distance-dx/2)/dx)*dx)
     %     padding_x = goal_x - edge_length - edge_distance
     project.StoreParameter('padding_x', 'max(-Int(-(lambda_min/4)/dx)*dx, -Int(-(edge_length+edge_distance-dx/2)/dx)*dx) - edge_length - edge_distance + dx/2');
     % Round up the Y padding to a multiple of dy, to ensure a good fit of the stratification
     % above the unit cells.
-%         goal_y = max(-Int(-(lambda_min/4)/dx)*dx, -Int(-(dy/2-slot_width/2)/dx)*dx)
+    %     goal_y = max(-Int(-(lambda_min/4)/dx)*dx, -Int(-(dy/2-slot_width/2)/dx)*dx)
     %     padding_y = goal_y
     project.StoreParameter('padding_y', 'max(-Int(-(lambda_min/4)/dx)*dx, -Int(-(dy/2-slot_width/2)/dx)*dx)');
 
@@ -233,7 +232,6 @@ function BuildCST(this, project, parentcomponent)
         brick.Material('PEC');
         brick.Create();
 
-    project.NextCommandConditional('Ny > 1');
         transform.Reset();
         transform.Name([componentname, ':Wall']);
         transform.Vector(0, 'dy', 0);
@@ -258,6 +256,6 @@ function BuildCST(this, project, parentcomponent)
 %     brick.Yrange('-dy/2-padding_y-10',  '(Ny-1)*dy+dy/2+padding_y+10');
 %     brick.Zrange(-100, 100);
 %     brick.Create();
-%     
+% 
 %     solid.Subtract([componentname, ':InverseMask'], [componentname, ':Mask']);
 end

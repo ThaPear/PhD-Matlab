@@ -12,7 +12,7 @@ classdef Line < Element
             
             if(length(er) == 1)
                 % Scalar value
-                this.er = er;
+                this.er = er;%ones(1,3)*er;
                 if(nargin > 2)
                     this.er(1:length(mu)) = er;
                 end

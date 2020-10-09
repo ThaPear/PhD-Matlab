@@ -25,21 +25,6 @@ function ff = Farfield(this, f, excitation, ths, phs, r)
     % Only the up-transmission line is relevant since we're calculating the pattern above
     % the array.
     tlineup_ = this.tlineup;
-%     tlinedown_ = this.tlinedown;
-
-%     ff = zeros(1, N);
-%     for(ni = 1:N) % PARFOR
-%         th = ths(ni);
-%         ph = phs(ni);
-%         
-%         [k0, kx, ky, kz] = k(f, 1, th, ph);
-%         
-%         V = this.VoltageSpectrum(f, excitation, kx, ky);
-%         
-%         Ghm_xx = GreensFunction(f, k0, kx, ky, tlineup_, [], z0);
-%         
-%         ff(ni) = 1j .* Ghm_xx .* kz .* V .* exp(-1j .* k0 .* r) ./ (2.*pi.*r);
-%     end
 
     [k0s, kxs, kys, kzs] = k(f, 1, ths, phs);
 

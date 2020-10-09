@@ -17,6 +17,11 @@ classdef FiniteArray < handle
         D_kxs % Kx values for precomputed Ds
         D_fs  % Frequencies for precomputed Ds
         D_interpolants % Interpolant to index at any given kx
+        
+        KyInts    % Precomputed ky integrals
+        KyInt_kxs % Kx values for precomputed ky integrals
+        KyInt_fs  % Frequencies for precomputed ky integrals
+        KyInt_interpolants % Interpolant to index at any given kx
     end
     methods
         function this = FiniteArray(unitcell, tlineup, tlinedown, Nx, Ny, dedge, zfeed)
@@ -29,6 +34,7 @@ classdef FiniteArray < handle
             this.zfeed = zfeed;
         end
         InitializeDs(this, fs);
+        InitializeKyInts(this, fs);
         InitializeZMatrix(this, fs);
         Zas = GetInputImpedance(this, fs, excitation);
         Zred = ReducedZMatrix(this, fs);
@@ -43,6 +49,9 @@ classdef FiniteArray < handle
         kvec = UnfoldKVector(kvec, integrationpath);
     end
 end
+
+
+
 
 
 

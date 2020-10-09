@@ -54,7 +54,7 @@ for(Nx = Nxs)
         filepath = [path, filename];
         touchstonefilepath = [touchstonepath, filename];
 
-        if(~exist(sprintf('%s.s%ip', filepath, Nx*Ny), 'file'))
+        if(~exist(sprintf('%s.s%ip', touchstonefilepath, Nx*Ny), 'file'))
             dispex('Running CST simulation for %ix%i.\n', Nx, Ny);
             tc = tic;
             project = CST.InitializeBasicProject();

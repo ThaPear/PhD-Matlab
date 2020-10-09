@@ -1,4 +1,4 @@
-function [M] = VoltageSpectrum(this, fs, excitation, kx, ky)
+function M = VoltageSpectrum(this, fs, excitation, kx, ky)
     this.InitializeDs(fs);
     this.InitializeZMatrix(fs);
 

@@ -69,19 +69,31 @@ function BuildCST(this, project, parentcomponent)
                 end
                 if(line.er ~= 1)
                     % Create necessary material
-                    materialname = [num2str(line.er(1), 5), '_', num2str(line.er(2), 5), '_', num2str(line.er(3), 5)];
-                    material.Name(materialname);
-                    material.Folder('Generated');
-                    material.Colour(0, min(1, line.er(1)/20), 1);
-                    material.Type('Anisotropic');
-                    material.EpsilonX(line.er(1));
-                    material.EpsilonY(line.er(2));
-                    material.EpsilonZ(line.er(3));
-                    material.MuX(line.mu(1));
-                    material.MuY(line.mu(2));
-                    material.MuZ(line.mu(3));
-                    material.Transparency(0.5);
-                    material.Create();
+                    if(length(line.er) > 1)
+                        materialname = [num2str(line.er(1), 5), '_', num2str(line.er(2), 5), '_', num2str(line.er(3), 5)];
+                        material.Name(materialname);
+                        material.Folder('Generated');
+                        material.Colour(0, min(1, line.er(1)/20), 1);
+                        material.Type('Anisotropic');
+                        material.EpsilonX(line.er(1));
+                        material.EpsilonY(line.er(2));
+                        material.EpsilonZ(line.er(3));
+                        material.MuX(line.mu(1));
+                        material.MuY(line.mu(2));
+                        material.MuZ(line.mu(3));
+                        material.Transparency(0.5);
+                        material.Create();
+                    else
+                        materialname = [num2str(line.er(1), 5)];
+                        material.Name(materialname);
+                        material.Folder('Generated');
+                        material.Colour(0, min(1, line.er/20), 1);
+                        material.Type('Anisotropic');
+                        material.Epsilon(line.er);
+                        material.Mu(line.mu);
+                        material.Transparency(0.5);
+                        material.Create();
+                    end
 
                     % Create dielectric slab.
                     linename = ['Line ', num2str(i)];

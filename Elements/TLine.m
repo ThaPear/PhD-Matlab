@@ -37,13 +37,13 @@ classdef TLine < Element
                 
                 element = this.elements{i};
                 ABCDelement = element.GetABCD(isTE, f, k0, kr);
-                if(max(isnan(ABCDelement.A(:))) || max(isnan(ABCDelement.B(:))) || max(isnan(ABCDelement.C(:))) || max(isnan(ABCDelement.D(:))))
+                if(any(isnan(ABCDelement.A(:))) || any(isnan(ABCDelement.B(:))) || any(isnan(ABCDelement.C(:))) || any(isnan(ABCDelement.D(:))))
                     breakpoint;
                     element.GetABCD(isTE, f, k0, kr);
                 end
                 % Multiply the ABCD for each element together.
                 ABCD = ABCD.mul(ABCDelement);
-                if(max(isnan(ABCD.A(:))) || max(isnan(ABCD.B(:))) || max(isnan(ABCD.C(:))) || max(isnan(ABCD.D(:))))
+                if(any(isnan(ABCD.A(:))) || any(isnan(ABCD.B(:))) || any(isnan(ABCD.C(:))) || any(isnan(ABCD.D(:))))
                     breakpoint;
                 end
 %                 dispex('%s\n', class(element));

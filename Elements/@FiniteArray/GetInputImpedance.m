@@ -4,6 +4,8 @@ function Zas = GetInputImpedance(this, fs, excitation)
     end
     % Ensure the appropriate Z matrices have been calculated.
     this.InitializeZMatrix(fs);
+    
+    dispex('Active Z: Calculating for %i frequencies, %ix%i elements.\n', length(fs), this.Nx, this.Ny);
     tc = tic;
 
     Nf = length(fs);
@@ -39,5 +41,5 @@ function Zas = GetInputImpedance(this, fs, excitation)
     Zas = Zas(2:end-1, :, :);
 
     dt = toc(tc);
-    dispex('Active Z took %.1fms for %ix%i elements, %i frequencies.\n', dt*1e3, Nx_, Ny_, Nf);
+    dispex('Active Z: Completed in %s.\n', fancyduration(dt));
 end

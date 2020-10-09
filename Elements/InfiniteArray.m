@@ -176,13 +176,17 @@ classdef InfiniteArray < handle
 %             figureex(106); plot(kxs/k0, abs(Dinfdowns+Dinfups)); title('sum');
         end
         function BuildCST(this, project, parentcomponent)
-            this.unitcell.BuildCST(parentcomponent);
+            if(nargin < 3)
+                parentcomponent = [];
+            end
+            this.unitcell.BuildCST(project, parentcomponent);
             
             % Set boundary conditions to periodic.
             boundary = project.Boundary();
             boundary.Xmin('periodic');  boundary.Xmax('periodic');
             boundary.Ymin('periodic');  boundary.Ymax('periodic');
             
+            wcs = project.WCS();
             wcs.Enable();
             wcs.Store('Pre-Slot');
             wcs.RotateWCS('u', 180);

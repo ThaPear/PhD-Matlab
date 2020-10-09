@@ -1,7 +1,14 @@
+% To get element Znx,nxp,ny,nyp you use:
+% i1 = (nx +1) + Nx*ny;
+% i2 = (nxp+1) + Nx*nyp;
+% array.Zmat(i1, i2)
+
 function Zred = ReducedZMatrix(this, fs)
+    this.InitializeZMatrix(fs);
     tc = tic;
-    Zred = cell(1, length(fs));
-    for(fi = 1:length(fs))
+    Nf = length(fs);
+    Zred = cell(1, Nf);
+    for(fi = 1:Nf)
         Zmati = this.Zmat{fi};
 
         % Load the edge terminations with shorts, then define the loaded section of the
@@ -32,5 +39,5 @@ function Zred = ReducedZMatrix(this, fs)
     end
 
     dt = toc(tc);
-    dispex('Reducing Z took %.1fms for %ix%i elements, %i frequencies.\n', dt*1e3, Nx_, Ny_, Nf);
+    dispex('Reducing Z took %.1fms for %ix%i elements, %i frequencies.\n', dt*1e3, this.Nx, this.Ny, Nf);
 end

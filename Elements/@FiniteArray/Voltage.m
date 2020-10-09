@@ -1,4 +1,4 @@
-function [x, v] = Voltage(this, fs, excitation, ny)
+function [x, v] = Voltage(this, fs, excitation, ny, Npoints)
     this.InitializeDs(fs);
     this.InitializeZMatrix(fs);
 
@@ -19,8 +19,7 @@ function [x, v] = Voltage(this, fs, excitation, ny)
     excitation_(2:end-1, :) = excitation;
 
     basispositions = [-dedge_, (0:Nx_-1)*dx, (Nx_-1)*dx+dedge_];
-%     x = linspace(min(basispositions)-g, max(basispositions)+g, 20);
-%     x = linspace(-(max(basispositions)+g), max(basispositions)+g, 20);
+    x = linspace(min(basispositions), max(basispositions), N);
     N = 30;
     Nf = length(fs);
 
@@ -37,9 +36,7 @@ function [x, v] = Voltage(this, fs, excitation, ny)
         k0 = 2*pi/lambda;
 
         g = 5/3 * sqrt(wslot * lambda);
-        x = linspace(min(basispositions), max(basispositions), N);
-%         x = linspace(-0.02, 0.02, numXpoints);
-
+        
         %% Solve the equiv circuit
         % Retrieve the Z matrix for this frequency
         fii = find(this.Z_fs == f, 1);
@@ -80,9 +77,6 @@ function [x, v] = Voltage(this, fs, excitation, ny)
                 @(kx) v_Integrand_kx(this, f, dy, kx, x(xi), Nx_, Ny_, ny, Fs, basispositions, i, deformedpath, integrationpath), ...
                 lim1, lim2, 'Waypoints', integrationpath);
 
-%             v(xi) = fastintegral(@(kx) V_Integrand_ky(kx, 1, Nx_, Ny_, ny, dy, 1, Fs, basispositions, i, x(xi), dslot), lim1, lim2, 'Waypoints', integrationpath);
-%             v(xi) = fastintegral(@(kx) sinc(kx .* dslot ./ (2*pi)) .* exp(-1j .* kx .* x(xi)), lim1, lim2, 'Waypoints', integrationpath);
-
             send(hDataQueue, nan); % Update progress bar
         end
     end
@@ -105,7 +99,7 @@ function v = v_Integrand_kx(this, f, dy, kx, x, Nx_, Ny_, ny, Fs, xs, i, deforme
         interpolationkx = real(kx);
     else
         % If the path is deformed, unfold it to the real axis before interpolation.
-        interpolationkx = real(this.UnfoldKVector(kx, integrationpath));
+        interpolationkx = real(FiniteArray.UnfoldKVector(kx, integrationpath));
     end
     
     % Interpolate the D vectors at the desired kx values.

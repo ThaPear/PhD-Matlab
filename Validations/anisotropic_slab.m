@@ -9,17 +9,21 @@ l0 = c0 / f0;
 z0 = Constants.z0;
 zfeed = 180;
 ery = (z0 / sqrt(z0 * zfeed))^2;
-er = [8 ery 1];
+er = [ery ery 1];
+er = [3 3 3];
+mu = 1;
 
-slab = Line(l0/sqrt(ery)/4, er);
+% slab = Line(l0/4/sqrt(max(er)), er, mu);
+% slab = TLine({Line(l0/4/sqrt(2), [2 2 2], mu), Line(l0/4/sqrt(3), [3 3 3], mu)});
+
+slab = TLine({Line(l0/4/sqrt(2), [2], mu), Line(l0/4/sqrt(3), [3], mu), Line(l0/4/sqrt(4), [4], mu)});
 
 fs = 1e9 * (0.1:0.1:20);
-th = eps * pi/180;
+th = 45 * pi/180;
 ph = 0 * pi/180;
 
 % Calculate propagation constants.
 [k0, kx0, ky0, kz0] = k(fs, 1, th, ph);
-% [kd, ~, ~, kzd] = k(fs, zfeed, th, ph);
 kr = sqrt(kx0.^2 + ky0.^2);
 % Calculate impedances.
 [z0, z0te, z0tm] = z(1, k0, kz0);
@@ -35,15 +39,16 @@ Zinte = Zte.z11 - Zte.z12.*Zte.z21 ./ (Zte.z22+z0te);   Zintm = Ztm.z11 - Ztm.z1
     plot(axS, fs/1e9, 20*log10(abs(Ste.s11)));
     plot(axS, fs/1e9, 20*log10(abs(Stm.s11)));
     
-    legend(axS, {'TE', 'TM'});
+    addlegendentry(axS, {'TE', 'TM'});
     xlabel(axS, 'Frequency [GHz]');
     ylabel(axS, '|\Gamma| [dB]');
     ylim(axS, [-30 0]);
     figS.Name = 'Analytical';
     
 %% Simulate in CST.
-touchstonefilebase = ['h:/temp/temp'];
-touchstonefile = [touchstonefilebase, '.s4p'];
+mu = repmat(mu, 1, (4-length(mu)));
+filename = sprintf('h:/Git/PhD-Matlab/Validations/%s/eps_%.1f_%.1f_%.1f_mu_%.1f_%.1f_%.1f_th%i', mfilename, er(1), er(2), er(3), mu(1), mu(2), mu(3), th*180/pi);
+touchstonefile = [filename, '.s4p'];
 
 if(~exist(touchstonefile, 'file'))
     project = CST.InitializeUnitCellProject();
@@ -54,6 +59,7 @@ if(~exist(touchstonefile, 'file'))
     project.StoreParameter('fmesh', 20);
     project.StoreParameter('dx', l0/4*1e3);
     project.StoreParameter('dy', 'dx');
+    project.StoreParameter('nsamplesperGHZ', 1);
 
     slab.BuildCST(project);
     project.Rebuild();
@@ -67,7 +73,7 @@ if(~exist(touchstonefile, 'file'))
     touchstone.Reset();
     touchstone.Impedance(z0);
     touchstone.Renormalize(1);
-    touchstone.FileName(touchstonefilebase);
+    touchstone.FileName(filename);
     touchstone.Write();
 end
 
@@ -81,14 +87,14 @@ Ste.s21 = squeeze(S(3,1,:));                            Stm.s21 = squeeze(S(4,2,
 Ste.s22 = squeeze(S(3,3,:));                            Stm.s22 = squeeze(S(4,4,:));
 
 % Renormalize
-ABCDte = S2ABCD(Ste, z0te(1), z0te(1));                 ABCDtm = S2ABCD(Stm, z0tm(1), z0tm(1));
-Ste = ABCD2S(ABCDte, z0te(1), zfeed);                   Stm = ABCD2S(ABCDtm, z0tm(1), zfeed);
+ABCDte = S2ABCD(Ste, z0, z0);                           ABCDtm = S2ABCD(Stm, z0, z0);
+Ste = ABCD2S(ABCDte, zfeed, z0te(1));                   Stm = ABCD2S(ABCDtm, zfeed, z0tm(1));
 
-[figS, axS] = figureex(2);
-    plot(axS, fs/1e9, 20*log10(abs(Ste.s11)));
-    plot(axS, fs/1e9, 20*log10(abs(Stm.s11)));
+% [figS, axS] = figureex(2);
+    plot(axS, fs/1e9, 20*log10(abs(Ste.s11)), 'x');
+    plot(axS, fs/1e9, 20*log10(abs(Stm.s11)), 'x');
     
-    legend(axS, {'TE', 'TM'});
+    addlegendentry(axS, {'CSTTE', 'CSTTM'});
     xlabel(axS, 'Frequency [GHz]');
     ylabel(axS, '|\Gamma| [dB]');
     ylim(axS, [-30 0]);
