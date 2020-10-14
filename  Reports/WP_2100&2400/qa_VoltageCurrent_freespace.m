@@ -73,7 +73,7 @@ for(ith = 1:length(ths))
         % Green's function
         [Gej] = SpectralGF.ej(z0, k0, kx0, ky0, vtmtop, vtetop, itmtop, itetop);
         Gxx = -(vtm.*cos(ph).^2+vte.*sin(ph).^2);
-        Gyx = (vte-vtm).*sin(ph).*cos(ph);
+        Gyx = (vte-vtm).*sin(th).*cos(ph);
         Gzx = (z0.*vtm)./ztm.*sin(th).*cos(ph);
         Gzx2 = z0.*itmup.*sin(th).*cos(ph);
         if(0)

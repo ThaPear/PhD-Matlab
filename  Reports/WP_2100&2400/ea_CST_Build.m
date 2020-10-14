@@ -41,7 +41,7 @@ project.StoreParameter('lambda0', 'c0/f0/1e9');
 project.StoreParameter('slot_impedance', zfeed);
 project.StoreParameter('dms', 0.127);
 
-slot.BuildCST(project);
+array.BuildCST(project);
 if(vias)
     viasobj.BuildCST(project);
 end

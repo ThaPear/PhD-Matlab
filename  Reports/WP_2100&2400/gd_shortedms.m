@@ -58,10 +58,12 @@ tlinedown = ShortedLine(erback, hback, erback);
 
 % The slot.
 if(~dualpol)
-    slot = Slot(dx, dy, wslot, dslot, tlineup, tlinedown, walled);
+    slot = Slot(dx, dy, wslot, dslot, walled);
 else
-    slot = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot, tlineup, tlinedown);
+    slot = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot);
 end
+
+array = InfiniteArray(slot, tlineup, tlinedown);
 
 params = struct('wslot', wslot, ...
                 'dslot', dslot, ...
