@@ -2,7 +2,7 @@ clear;
 SetupPath;
 close all;
 
-folder = 'e:\ Reports\WP_2100&2400\gg_coax_lossy\';
+folder = sprintf('%s/ Reports/WP_2100&2400/gg_coax_lossy/', resultdir_matlab);
 
 % [parameters, tot2] = CST.LoadData([folder, 'tot2.txt']);
 % tot2 = 10.^(tot2{1}(2,:)./10);

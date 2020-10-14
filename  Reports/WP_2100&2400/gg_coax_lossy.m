@@ -90,9 +90,10 @@ end
 ths = [eps 60 60] * pi/180;
 phs = [0   0  45] * pi/180;
 
-
-folder = ['e:\ Reports\WP_2100&2400\', mfilename, '\'];
+folder = sprintf('%s/ Reports/WP_2100&2400/%s/', resultdir_cst, mfilename);
+touchstonefolder = sprintf('%s/ Reports/WP_2100&2400/%s/', resultdir_matlab, mfilename);
 [~, ~] = mkdir(folder);
+[~, ~] = mkdir(touchstonefolder);
 
 clrmap = lines(7);
 for(iangle = 1:length(ths))
@@ -100,12 +101,17 @@ for(iangle = 1:length(ths))
     params.ph = phs(iangle);
     
     filename = struct2string(params);
-    filename = regexprep(filename, '[+*]', '_');
     
-    filepath = [folder, filename, '.cst'];
-    if(~exist(filepath, 'file'))
+    cstfile = [folder, filename, '.cst'];
+    if(~dualpol)
+        touchstonefile = [touchstonefolder, filename, '.s1p'];
+    else
+        touchstonefile = [touchstonefolder, filename, '.s2p'];
+    end
+    
+    if(~exist(cstfile, 'file'))
         dispex('Building simulation...'); tc = tic;
-        gg_coax_lossy_Build;
+        ga_ms_Build;
         
         project.StoreParameter(CST.Defaults.ThetaName, params.th * 180/pi);
         project.StoreParameter(CST.Defaults.PhiName, params.ph * 180/pi);
@@ -113,20 +119,15 @@ for(iangle = 1:length(ths))
             project.StoreParameter('nsamplesperGHz', 1);
         end
         
-        project.SaveAs(filepath, 0);
+        project.SaveAs(cstfile, 0);
         fprintf(' Done. Took %.1fs.\n', toc(tc));
         pause(5);
         project.Quit();
         pause(10);
     end
-    if(~dualpol)
-        touchstonefile = [filepath(1:end-4), '.s1p'];
-    else
-        touchstonefile = [filepath(1:end-4), '.s2p'];
-    end
     if(~exist(touchstonefile, 'file'))
         dispex('Simulating...'); tc = tic;
-        project = CST.Application.OpenFile(filepath);
+        project = CST.Application.OpenFile(cstfile);
         dsproject = CST.Application.ActiveDS();
         
         project.StoreParameter('nsamplesperGHz', 1);
@@ -140,32 +141,32 @@ for(iangle = 1:length(ths))
         touchstone.Reset();
         touchstone.Impedance(zfeed);
         touchstone.Renormalize(1);
-        touchstone.FileName(filepath(1:end-4));
+        touchstone.FileName(touchstonefile(1:end-4));
         touchstone.Write();
         
         asciiexport = project.ASCIIExport();
         resultname = '1D Results\Power\Excitation [2]\Loss in Metals';
         project.SelectTreeItem(resultname);
         asciiexport.Reset();
-        asciiexport.FileName([filepath(1:end-4), '_metal2.txt']);
+        asciiexport.FileName([touchstonefile(1:end-4), '_metal2.txt']);
         asciiexport.Execute();
         
         resultname = '1D Results\Power\Excitation [4]\Loss in Metals';
         project.SelectTreeItem(resultname);
         asciiexport.Reset();
-        asciiexport.FileName([filepath(1:end-4), '_metal4.txt']);
+        asciiexport.FileName([touchstonefile(1:end-4), '_metal4.txt']);
         asciiexport.Execute();
         
         resultname = '1D Results\Power\Excitation [2]\Loss in Dielectrics';
         project.SelectTreeItem(resultname);
         asciiexport.Reset();
-        asciiexport.FileName([filepath(1:end-4), '_diel2.txt']);
+        asciiexport.FileName([touchstonefile(1:end-4), '_diel2.txt']);
         asciiexport.Execute();
         
         resultname = '1D Results\Power\Excitation [4]\Loss in Dielectrics';
         project.SelectTreeItem(resultname);
         asciiexport.Reset();
-        asciiexport.FileName([filepath(1:end-4), '_diel4.txt']);
+        asciiexport.FileName([touchstonefile(1:end-4), '_diel4.txt']);
         asciiexport.Execute();
         
         project.Save();
@@ -233,19 +234,19 @@ for(iangle = 1:length(ths))
     ylim(axVSWR, [1 8]);
     
     %% Plot losses
-    [parameters, data] = CST.LoadData([filepath(1:end-4), '_metal2.txt']);
+    [parameters, data] = CST.LoadData([touchstonefile(1:end-4), '_metal2.txt']);
     data = data{1};
     fsmetal2 = data(1,:);
     Lmetal2 = data(2,:);
-    [parameters, data] = CST.LoadData([filepath(1:end-4), '_metal4.txt']);
+    [parameters, data] = CST.LoadData([touchstonefile(1:end-4), '_metal4.txt']);
     data = data{1};
     fsmetal4 = data(1,:);
     Lmetal4 = data(2,:);
-    [parameters, data] = CST.LoadData([filepath(1:end-4), '_diel2.txt']);
+    [parameters, data] = CST.LoadData([touchstonefile(1:end-4), '_diel2.txt']);
     data = data{1};
     fsdiel2 = data(1,:);
     Ldiel2 = data(2,:);
-    [parameters, data] = CST.LoadData([filepath(1:end-4), '_diel4.txt']);
+    [parameters, data] = CST.LoadData([touchstonefile(1:end-4), '_diel4.txt']);
     data = data{1};
     fsdiel4 = data(1,:);
     Ldiel4 = data(2,:);

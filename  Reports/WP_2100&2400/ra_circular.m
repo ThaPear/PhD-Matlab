@@ -1,7 +1,7 @@
 clearvars -except Eth Eph;
 close all;
 
-path = [cd, '\PhD-Matlab\ Reports\WP_2100&2400\', mfilename, '\'];
+path = sprintf('%s/ Reports/WP_2100&2400/%s/', resultdir_matlab, mfilename);
 
 fs = 9:33;
 ports = 1:2;

@@ -5,7 +5,7 @@ close all;
 C = inf;
 zfeed = 80;
 
-folder = ['e:\ Reports\WP_2100&2400\', mfilename, '\'];
+folder = sprintf('%s/ Reports/WP_2100&2400/%s/', resultdir_cst, mfilename);
 
 filepath = [folder, 'final', '.cst'];
 touchstonefile = [filepath(1:end-4), '.s4p'];

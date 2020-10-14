@@ -1,7 +1,7 @@
 clearvars -except Eth Eph;
 close all;
 
-path = [cd, '\PhD-Matlab\ Reports\WP_2100&2400\ra_circular\'];
+path = sprintf('%s/ Reports/WP_2100&2400/ra_circular/', resultdir_matlab);
 
 ARs = zeros(13, 25);
 

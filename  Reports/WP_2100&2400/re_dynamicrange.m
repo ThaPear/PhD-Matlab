@@ -4,7 +4,7 @@ close all;
 project = CST.Application.Active3D();
 fdsolver = project.FDSolver();
 
-path = [cd, '\PhD-Matlab\ Reports\WP_2100&2400\ra_circular\'];
+path = sprintf('%s/ Reports/WP_2100&2400/ra_circular/', resultdir_matlab);
 
 ARs = zeros(13, 25);
 

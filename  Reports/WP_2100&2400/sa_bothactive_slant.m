@@ -14,7 +14,7 @@ params = struct('wslot', 0.8, ...
                 'Ap', 1.2);
             
             
-folder = ['e:\ Reports\WP_2100&2400\', 'gb_coax', '\'];
+folder = sprintf('%s/ Reports/WP_2100&2400/gb_coax/', resultdir_matlab);
 
 ths = [eps 60 60] * pi/180;
 phs = [0   0  45] * pi/180;

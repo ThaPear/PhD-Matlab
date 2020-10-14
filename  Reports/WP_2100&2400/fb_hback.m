@@ -75,9 +75,10 @@ params = struct('z1', z1, ...
 ths = [eps 60] * pi/180;
 phs = [0   0 ] * pi/180;
 
-
-folder = ['e:\ Reports\WP_2100&2400\', mfilename, '\'];
+folder = sprintf('%s/ Reports/WP_2100&2400/%s/', resultdir_cst, mfilename);
+touchstonefolder = sprintf('%s/ Reports/WP_2100&2400/%s/', resultdir_matlab, mfilename);
 [~, ~] = mkdir(folder);
+[~, ~] = mkdir(touchstonefolder);
 
 clrmap = lines(7);
 for(iangle = 1:length(ths))
@@ -86,8 +87,14 @@ for(iangle = 1:length(ths))
     
     filename = struct2string(params);
     
-    filepath = [folder, filename, '.cst'];
-    if(~exist(filepath, 'file'))
+    cstfile = [folder, filename, '.cst'];
+    if(~dualpol)
+        touchstonefile = [touchstonefolder, filename, '.s1p'];
+    else
+        touchstonefile = [touchstonefolder, filename, '.s2p'];
+    end
+    
+    if(~exist(cstfile, 'file'))
         dispex('Building simulation...'); tc = tic;
         ea_CST_Build;
         
@@ -97,20 +104,15 @@ for(iangle = 1:length(ths))
             project.StoreParameter('nsamplesperGHz', 1);
         end
         
-        project.SaveAs(filepath, 0);
+        project.SaveAs(cstfile, 0);
         fprintf(' Done. Took %.1fs.\n', toc(tc));
         pause(5);
         project.Quit();
         pause(10);
     end
-    if(~dualpol)
-        touchstonefile = [filepath(1:end-4), '.s1p'];
-    else
-        touchstonefile = [filepath(1:end-4), '.s2p'];
-    end
     if(~exist(touchstonefile, 'file'))
         dispex('Simulating...'); tc = tic;
-        project = CST.Application.OpenFile(filepath);
+        project = CST.Application.OpenFile(cstfile);
         dsproject = CST.Application.ActiveDS();
         
         project.Rebuild();
@@ -122,7 +124,7 @@ for(iangle = 1:length(ths))
         touchstone.Reset();
         touchstone.Impedance(zfeed);
         touchstone.Renormalize(1);
-        touchstone.FileName(filepath(1:end-4));
+        touchstone.FileName(touchstonefile(1:end-4));
         touchstone.Write();
     
         project.Save();
