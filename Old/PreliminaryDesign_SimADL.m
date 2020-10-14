@@ -13,7 +13,7 @@ for(iangle = 1:length(ths))
 
     % Calculate propagation constants.
     [k0, kx0, ky0, kz0] = k(fs, 1, th, ph);
-    [kd, ~, ~, kzd] = k(fs, (z0/z1)^2, th, ph);
+%     [kd, ~, ~, kzd] = k(fs, (z0/z1)^2, th, ph);
     kr = sqrt(kx0.^2 + ky0.^2);
     % Calculate impedances.
     [z0, z0te, z0tm] = z(1, k0, kz0);
