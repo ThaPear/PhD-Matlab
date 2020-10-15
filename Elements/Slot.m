@@ -154,8 +154,8 @@ classdef Slot
             brick.Create();
             
             pick = project.Pick();
-            pick.PickEdgeFromId([componentname, ':FeedPort'], 2, 2);
             pick.PickEdgeFromId([componentname, ':FeedPort'], 4, 4);
+            pick.PickEdgeFromId([componentname, ':FeedPort'], 2, 2);
             
             % Define the port.
             Nports = port.StartPortNumberIteration();

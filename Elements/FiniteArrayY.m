@@ -59,6 +59,7 @@ classdef FiniteArrayY < handle
             dy = this.unitcell.dy;
             wslot = this.unitcell.wslot;
             % dslot = this.unitcell.dslot;
+            walled = this.unitcell.walled;
             
             z0 = Constants.z0;
             
@@ -103,7 +104,7 @@ classdef FiniteArrayY < handle
                 integrationpath = [(-1-1j).*delta, (1+1j).*delta];
                 % Loop version - faster
                 Dmys_(ni) = -1/(2*pi) .* integral(...
-                    @(ky) D_Integrand(f, dy, k0, ky, kxm, tlineup_, tlinedown_, z0, wslot, nyp), ...
+                    @(ky) D_Integrand(f, dy, k0, ky, kxm, tlineup_, tlinedown_, z0, wslot, nyp, walled), ...
                     lim1, lim2, 'Waypoints', integrationpath);
                 if(abs(Dmys_(ni)) < eps)
                     dispex('Nope\n');
@@ -156,10 +157,17 @@ classdef FiniteArrayY < handle
             
             dx = this.unitcell.dx;
             dy = this.unitcell.dy;
-            % wslot = this.unitcell.wslot;
+            wslot = this.unitcell.wslot;
             dslot = this.unitcell.dslot;
             
+            walled = this.unitcell.walled;
+            
+            z0 = Constants.z0;
+            
+            tlinedown_ = this.tlinedown;
+            
             mxs = [-this.numM:this.numM].';
+            mys = mxs;
             nyps = 1:this.Ny;
             Nf = length(newfs);
             
@@ -177,12 +185,36 @@ classdef FiniteArrayY < handle
             ints = zeros(length(mxs), this.Ny, Nf);
             Zmat_ = zeros(this.Ny, this.Ny, Nf);
             % TODO: Can be sliced into fi, kxm, and nyp for more parallelization.
-            parfor(fi = 1:Nf) % parfor
+            for(fi = 1:Nf) % parfor
                 f = newfs(fi);
                 Dmy = Dmys_(:, :, Dmy_fs_ == f); %#ok<PFBNS> Broadcast variable
 
-                [~, kx0, ~, ~] = k(f, 1, th, ph);
+                [k0, kx0, ~, ~] = k(f, 1, th, ph);
                 kxm = kx0 - 2*pi*mxs/dx;
+                
+                %% Calculate Ddown
+                Ddown = 0;
+                if(walled)
+                    for(myi = 1:length(mys))
+                        my = mys(myi);
+                        kym =  - 2*pi*my/dy;
+
+                        Vte = 1;
+                        Vtm = 1;
+
+                        kr = sqrt(kxm.^2 + kym.^2);
+                        isTE = 1;    ztedown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
+                        isTE = 0;    ztmdown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
+
+                        itedown = 1 ./ ztedown;
+                        itmdown = 1 ./ ztmdown;
+
+                        [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmdown, itedown);
+                        Ghm_xx_down = Ghm.xx;
+
+                        Ddown = Ddown + -1/dy .* Ghm_xx_down .* besselj(0, -2*pi*my/dy*wslot/2);
+                    end
+                end
 
                 %% Calculate the integral for Z
                 lim1 = -pi/dy;
@@ -198,7 +230,7 @@ classdef FiniteArrayY < handle
 %                 end
                 % ArrayValued version - equally fast but simpler.
                 int = integral(...
-                    @(ky) Z_Integrand(ky, dy, 1, nyps, Dmy), ...
+                    @(ky) Z_Integrand(ky, dy, 1, nyps, Dmy, Ddown), ...
                     lim1, lim2, ...
                     'ArrayValued', 1);
                 
@@ -280,13 +312,20 @@ classdef FiniteArrayY < handle
             Zmat_fs_ = this.Zmat_fs;
             
             Ny_ = this.Ny;
-            ay_ = this.ay;
+            ay0_ = this.ay;
+            
+            dy = this.unitcell.dy;
+            
             
             zfeed_ = this.zfeed;
             
             Zas = zeros(this.Ny, Nf);
             parfor(fi = 1:Nf) % parfor
                 f = fs(fi);
+                
+                [~, ~, ky0, ~] = k(f, 1, th, ph);
+                ay_ = ay0_ .* exp(-1j .* ky0 .* (1:Ny_) .* dy);
+                
                 Z = Zmat_(:, :, Zmat_fs_ == f); %#ok<PFBNS> Broadcast variable
                 
                 % Add ZL
@@ -304,10 +343,105 @@ classdef FiniteArrayY < handle
             dt = toc(tc);
             dispex('Active Z: Completed in %s.\n', fancyduration(dt));
         end
+        function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            else
+                if(~strcmp(parentcomponent(end), '/'))
+                    parentcomponent = [parentcomponent, '/'];
+                end
+            end
+            componentname = [parentcomponent, 'Array'];
+            
+
+            boundary = project.Boundary();
+            boundary.Ymin('open');
+            boundary.Ymax('open');
+
+            project.StoreParameter('Ny', this.Ny);
+
+            this.unitcell.BuildCST(project, [componentname, '/UnitCell']);
+
+            wcs = project.WCS();
+            wcs.Enable(); 
+            wcs.Store('Pre-Slot'); 
+            wcs.RotateWCS('u', 180); 
+
+            % Build down-stratification. 
+            this.tlinedown.BuildCST(project, [componentname, '/Stratification']); 
+
+            wcs.Restore('Pre-Slot'); 
+
+            % Build up-stratification. 
+            this.tlineup.BuildCST(project, [componentname, '/Stratification']); 
+
+            wcs.Restore('Pre-Slot'); 
+            wcs.Delete('Pre-Slot'); 
+            wcs.Disable(); 
+
+            transform = project.Transform();
+
+            transform.Reset();
+                transform.Name([componentname, '/UnitCell']);
+                transform.Vector(0, 'dy', 0);
+                transform.MultipleObjects(1);
+                transform.GroupObjects(1);
+                transform.Repetitions('Ny-1');
+            transform.Transform('Shape', 'Translate');
+
+            transform.Reset();
+                transform.Name([componentname, '/Stratification']);
+                transform.Vector(0, '-dy', 0);
+                transform.MultipleObjects(0);
+                transform.GroupObjects(0);
+                transform.Repetitions('1');
+            transform.Transform('Shape', 'Translate');
+            
+            transform.Reset();
+                transform.Name([componentname, '/Stratification']);
+                transform.Vector(0, 'dy', 0);
+                transform.MultipleObjects(1);
+                transform.GroupObjects(1);
+                transform.Repetitions('Ny+1');
+            transform.Transform('Shape', 'Translate');
+            
+            brick = project.Brick();
+            brick.Reset();
+                brick.Name('SlotPlane');
+                brick.Component(componentname);
+                brick.Xrange('-dx/2', 'dx/2');
+                brick.Yrange('-3/2*dy', '-dy/2');
+                brick.Zrange(0, 0);
+                brick.Material('PEC');
+            brick.Create();
+            
+            transform.Reset();
+                transform.Name([componentname, ':SlotPlane']);
+                transform.Vector(0, '(Ny+1)*dy', 0);
+                transform.MultipleObjects(1);
+                transform.GroupObjects(1);
+                transform.Repetitions('1');
+            transform.Transform('Shape', 'Translate');
+%             brick.Reset();
+%                 brick.Name('SlotPlane2');
+%                 brick.Component(componentname);
+%                 brick.Xrange('-dx/2', 'dx/2');
+%                 brick.Yrange('Ny*dy-dy/2', 'Ny*dy+dy/2');
+%                 brick.Zrange(0, 1);
+%                 brick.Material('PEC');
+%             brick.Create();
+
+            transform.Reset();
+                transform.Name('port1 (SlotFeed)');
+                transform.Vector(0, 'dy', 0);
+                transform.MultipleObjects(1);
+                transform.Repetitions('Ny-1');
+            transform.Transform('Port', 'Translate');
+        end
     end
 end
 
-function v = D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp)
+function v = D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp, walled)
     Vtm = 1;
     Vte = 1;
 
@@ -321,30 +455,34 @@ function v = D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp)
     [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmup, iteup);
     Gxxup = Ghm.xx;
 
-    isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
-    isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+    if(~walled)
+        isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
+        isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
 
-    itedown = 1 ./ ztedown;
-    itmdown = 1 ./ ztmdown;
+        itedown = 1 ./ ztedown;
+        itmdown = 1 ./ ztmdown;
 
-    [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmdown, itedown);
-    Gxxdown = Ghm.xx;
+        [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmdown, itedown);
+        Gxxdown = Ghm.xx;
+    else
+        Gxxdown = 0;
+    end
 
     Gxx = Gxxup + Gxxdown;
 
     v = Gxx.*besselj(0, ky.*wslot./2).*exp(-1j.*ky.*dy.*(nyp-1));
     
-    % Assume anything that is NaN can be approximated by 0.
-    v(isnan(v)) = 0;
+%     % Assume anything that is NaN can be approximated by 0.
+%     v(isnan(v)) = 0;
 end
 
-function v = Z_Integrand(ky, dy, ny, nyp, Dmy)
-    s = sum(Dmy .* exp(1j .* (nyp-1) .* ky .* dy), 2);
+function v = Z_Integrand(ky, dy, ny, nyp, Dmy, Ddown)
+    s = sum(Dmy .* exp(1j .* (nyp-1) .* ky .* dy), 2) + Ddown;
     v = exp(-1j .* ky .* dy .* abs(ny-nyp)) ./ s;
 end
 %% Non-arrayvalued version
-function v = Z_Integrand2(ky, dy, ny, nyp, nypp, Dmy)
-    s = sum(Dmy .* exp(1j .* (nypp-1) .* ky .* dy), 1);
+function v = Z_Integrand2(ky, dy, ny, nyp, nypp, Dmy, Ddown)
+    s = sum(Dmy .* exp(1j .* (nypp-1) .* ky .* dy), 1) + Ddown;
     v = exp(-1j .* ky .* dy .* abs(ny-nyp)) ./ s;
 end
 %% Old method (Thesis Riccardo)

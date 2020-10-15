@@ -3,8 +3,8 @@ classdef Slot_Dualpol_Bowtie < Slot
         wfeed
     end
     methods
-        function this = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot, tlineup, tlinedown)
-            this@Slot(dx, dy, wslot, dslot, tlineup, tlinedown, 1);
+        function this = Slot_Dualpol_Bowtie(dx, dy, wslot, dslot)
+            this@Slot(dx, dy, wslot, dslot, 1);
         end
         function BuildCST(this, project, parentcomponent)
             if(nargin < 3 || isempty(parentcomponent))
@@ -161,16 +161,7 @@ classdef Slot_Dualpol_Bowtie < Slot
             
             
             wcs.Restore('Pre-Slot');
-            wcs.RotateWCS('u', 180);
-            
-            % Build down-stratification.
-            this.tlinedown.BuildCST(project, parentcomponent);
-            
-            wcs.Restore('Pre-Slot');
             wcs.Delete('Pre-Slot');
-            
-            % Build up-stratification.
-            this.tlineup.BuildCST(project, parentcomponent);
             
             wcs.Disable();
         end
