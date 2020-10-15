@@ -184,7 +184,7 @@ for(iangle = 1:length(ths))
 %     plot(axZ, fs/1e9, imag(ZasC11), '--');
     
     plot(axVSWR, fs/1e9, VSWR11);
-    addlegendentry(axVSWR, ['\theta = ', num2str(round(th * 180/pi)), '\circ']);
+    addlegendentry(axVSWR, ['\theta = ', num2str(round(params.th * 180/pi)), '\circ']);
     
     if(iangle < 8)
         [figVSWR2, axVSWR2] = a_figVSWR(floor((iangle-1)/7)+1+2);
@@ -192,23 +192,23 @@ for(iangle = 1:length(ths))
 %         plot(axZ, fs/1e9, real(ZasC22));
 %         plot(axZ, fs/1e9, imag(ZasC22), '--');
         plot(axVSWR2, fs/1e9, VSWR22);
-        addlegendentry(axVSWR2, ['\theta = ', num2str(round(th * 180/pi)), '\circ']);
+        addlegendentry(axVSWR2, ['\theta = ', num2str(round(params.th * 180/pi)), '\circ']);
     end
 
     if(iangle > 1)
         ind = find(20*log10(abs(Gamma11)) == max(20*log10(abs(Gamma11(fs >= 13.75e9 & fs <= 14.5e9 | fs >= 28e9 & fs <= 31e9)))), 1);
         ind2 = find(20*log10(abs(Gamma22)) == max(20*log10(abs(Gamma22(fs >= 13.75e9 & fs <= 14.5e9 | fs >= 28e9 & fs <= 31e9)))), 1);
         if(20*log10(abs(Gamma11(ind))) < 20*log10(abs(Gamma22(ind2))))
-            dispex('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
-                params.th*180/pi, params.ph*180/pi+90, 20*log10(abs(Gamma22(ind2))), fs(ind2)/1e9, real(ZasC22(ind2)), imag(ZasC22(ind2)));
+            dispex('Worst at %02.0f,%02.0f is %.2f/%.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
+                params.th*180/pi, params.ph*180/pi+90, 20*log10(abs(Gamma22(ind2))), VSWR22(ind2), fs(ind2)/1e9, real(ZasC22(ind2)), imag(ZasC22(ind2)));
         else
-            dispex('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
-                params.th*180/pi, params.ph*180/pi, 20*log10(abs(Gamma11(ind))), fs(ind)/1e9, real(ZasC11(ind)), imag(ZasC11(ind)));
+            dispex('Worst at %02.0f,%02.0f is %.2f/%.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
+                params.th*180/pi, params.ph*180/pi, 20*log10(abs(Gamma11(ind))), VSWR11(ind), fs(ind)/1e9, real(ZasC11(ind)), imag(ZasC11(ind)));
         end
     else
         ind = find(20*log10(abs(Gamma11)) == max(20*log10(abs(Gamma11(fs >= 13.75e9 & fs <= 14.5e9 | fs >= 28e9 & fs <= 31e9)))));
-        dispex('Worst at %02.0f,%02.0f is %.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
-            params.th*180/pi, params.ph*180/pi, 20*log10(abs(Gamma11(ind))), fs(ind)/1e9, real(ZasC11(ind)), imag(ZasC11(ind)));
+        dispex('Worst at %02.0f,%02.0f is %.2f/%.2f, f = %.1fGHz, Z = %.2f + %.2fj.\n', ...
+            params.th*180/pi, params.ph*180/pi, 20*log10(abs(Gamma11(ind))), VSWR11(ind), fs(ind)/1e9, real(ZasC11(ind)), imag(ZasC11(ind)));
     end
     
     efficiency11 = (1-abs(Gamma11).^2);
@@ -246,7 +246,7 @@ movelegend(figure(3), 'n');
 movelegend(figure(4), 's');
 %%
 hFileOut = fopen([cd, '/PhD-Matlab/ Reports/WP_2100&2400/a_latestCST.m'], 'w');
-fprintf(hFileOut, 'winopen(''%s'');', filepath);
+fprintf(hFileOut, 'winopen(''%s'');', cstfile);
 fclose(hFileOut);
 
 

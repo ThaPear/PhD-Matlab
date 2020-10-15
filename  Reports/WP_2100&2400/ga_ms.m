@@ -207,7 +207,7 @@ legend(axVSWR, axVSWR.Children(3:-1:1), {'Broadside', 'H-plane 60\circ', 'E-plan
 movelegend(axVSWR, 'n');
 %%
 hFileOut = fopen([cd, '/PhD-Matlab/ Reports/WP_2100&2400/a_latestCST.m'], 'w');
-fprintf(hFileOut, 'winopen(''%s'');', filepath);
+fprintf(hFileOut, 'winopen(''%s'');', cstfile);
 fclose(hFileOut);
 
 

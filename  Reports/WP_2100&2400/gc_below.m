@@ -252,7 +252,7 @@ legend(axVSWR, axVSWR.Children([5 4 2 1 3]), {'Broadside', ...
 movelegend(axVSWR, 'n');
 %%
 hFileOut = fopen([cd, '/PhD-Matlab/ Reports/WP_2100&2400/a_latestCST.m'], 'w');
-fprintf(hFileOut, 'winopen(''%s'');', filepath);
+fprintf(hFileOut, 'winopen(''%s'');', cstfile);
 fclose(hFileOut);
 
 

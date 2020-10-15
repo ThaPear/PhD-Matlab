@@ -19,8 +19,8 @@ folder = sprintf('%s/ Reports/WP_2100&2400/ge_coax_manyscan/', resultdir_matlab)
 
 ths = [eps 30 30 60 60] * pi/180;
 phs = [0   0  45 0  45] * pi/180;
-% ths = [eps 60] * pi/180;
-% phs = [0   0 ] * pi/180;
+ths = [eps 60 60] * pi/180;
+phs = [0   0  45] * pi/180;
 th0 = 25;
 f0s = [14 30];
 fs_field = 9:33;
@@ -51,7 +51,7 @@ for(iangle = 1:length(ths))
     end
     
     %% Load the fields
-    path = [cd, '\PhD-Matlab\ Reports\WP_2100&2400\ra_circular\'];
+    path = sprintf('%s/ Reports/WP_2100&2400/ra_circular/', resultdir_matlab);
     load([path, '0.127_ff_', num2str(th0), '_', num2str(ph*180/pi), '.mat']);
     
     EthX = Eth(1,:);

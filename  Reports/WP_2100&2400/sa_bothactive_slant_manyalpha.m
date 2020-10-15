@@ -51,7 +51,7 @@ for(iangle = 1:length(ths))
     end
     
     %% Load the fields
-    path = [cd, '\PhD-Matlab\ Reports\WP_2100&2400\ra_circular\'];
+    path = sprintf('%s/ Reports/WP_2100&2400/ra_circular/', resultdir_matlab);
     load([path, '0.127_ff_', num2str(th0), '_', num2str(ph*180/pi), '.mat']);
     
     EthX = Eth(1,:);
