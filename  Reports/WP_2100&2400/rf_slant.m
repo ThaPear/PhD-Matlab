@@ -86,3 +86,14 @@ legend(hAx, hAx.Children(length(taus):-1:1), strcat({'\alpha = '}, strsplit(num2
     'NumColumns', 2);
 legendlinelength(hAx, 25);
 drawnow; movelegend(hAx, 'n');
+%% EupCAP 2021 - Make figure with legend only.
+% [hFig, hAx] = figureex(2);
+% hLeg = legend(hAx, 'NumColumns', 4);
+% legendlinelength(hAx, 15);
+% drawnow; movelegend(hAx, 'no');
+% hFig.Units = 'pixels';
+% hAx.Units = 'pixels';
+% hLeg.Units = 'pixels';
+% hFig.Position(3:4) = hLeg.Position(3:4);
+% drawnow;
+% hLeg.Position(1:2) = [1 1];

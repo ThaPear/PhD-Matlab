@@ -127,5 +127,6 @@ for(iangle = 1:length(ths))
 end
 end
 
-legend(hAx, hAx.Children(5:-1:1), {'Broadside', 'E-plane 30\circ', 'D-plane 30\circ', 'E-plane 60\circ', 'D-plane 60\circ'});
+% legend(hAx, hAx.Children(5:-1:1), {'Broadside', 'E-plane 30\circ', 'D-plane 30\circ', 'E-plane 60\circ', 'D-plane 60\circ'});
+legend(hAx, hAx.Children(3:-1:1), {'Broadside', 'E-plane 60\circ', 'D-plane 60\circ'});
 movelegend(hAx, 's');

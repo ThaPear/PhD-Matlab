@@ -90,5 +90,30 @@ for(f0 = [14 30])
     end
 end
 
+%% EuCAP2021
+for(ifig = 1:100)
+    if(ishandle(ifig))
+        [hFig, hAx] = figureex(ifig);
+        if(mod(ifig, 2) == 1 || ifig == 6)
+            close(ifig);
+            continue;
+        elseif(ifig == 12)
+            hLeg = legend(hAx, 'NumColumns', 4);
+            legendlinelength(hAx, 15);
+            drawnow; movelegend(hAx, 'no');
+            hFig.Units = 'pixels';
+            hAx.Units = 'pixels';
+            hLeg.Units = 'pixels';
+            drawnow;
+            hFig.Position(3:4) = hLeg.Position(3:4) + [1 1];
+            drawnow;
+            hLeg.Position(1:2) = [1 1];
+            continue;
+        end
+        alignplot(hFig, 8, 4, hFig.Number/2, [], 2);
+        legend(hAx, 'off');
+    end
+end
+        
 
 
