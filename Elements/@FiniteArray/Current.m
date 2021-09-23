@@ -1,4 +1,4 @@
-function [x, v] = Voltage(this, fs, excitation, ny)
+function [x, v] = Current(this, fs, excitation, ny)
     this.InitializeDs(fs);
     this.InitializeZMatrix(fs);
 
@@ -10,7 +10,7 @@ function [x, v] = Voltage(this, fs, excitation, ny)
     wslot_ = this.unitcell.wslot;
 
     Nf = length(fs);
-    N = 50;
+    N = 500;
     basispositions = [-dedge_, (0:Nx_-1)*dx, (Nx_-1)*dx+dedge_];
     x = linspace(min(basispositions), max(basispositions), N);
     
@@ -57,7 +57,7 @@ function [x, v] = Voltage(this, fs, excitation, ny)
     delete(hWaitbar);
 end
 function v = v_Integrand_kx(this, f, kx, x, excitation, ny)
-    Vny = this.VoltageSpectrum(f, excitation, kx, ny);
+    Vny = this.CurrentSpectrum(f, excitation, kx, ny);
     
     v =1/(2*pi) .* Vny .* exp(-1j .* kx .* x);
 end

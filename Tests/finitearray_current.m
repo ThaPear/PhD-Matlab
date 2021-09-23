@@ -51,12 +51,12 @@ array.InitializeZMatrix(f);
 hAx.ColorOrder = reshape(repmat(lines(7), 1, 3).', [], 21).';
 for(ny = 0:Ny-1)
     tc = tic;
-    [x, v] = array.Voltage(f, excitation, ny);
+    [x, i] = array.Current(f, excitation, ny);
     dt = toc(tc);
     dispex('Finished %i in %.2fs.\n', ny, dt);
-    plot(hAx, x, real(v));
+    plot(hAx, x, real(i));
     addlegendentry(sprintf('ny = %i', ny));
-    plot(hAx, x, imag(v), '--');
-    plot(hAx, x, abs(v), ':');
+    plot(hAx, x, imag(i), '--');
+    plot(hAx, x, abs(i), ':');
     
 end

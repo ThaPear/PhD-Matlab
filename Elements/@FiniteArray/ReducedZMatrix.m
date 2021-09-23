@@ -1,13 +1,14 @@
 % To get element Znx,nxp,ny,nyp you use:
+% Z = <varname>.ReducedZMatrix(<frequencies>);
 % i1 = (nx +1) + Nx*ny;
 % i2 = (nxp+1) + Nx*nyp;
-% array.Zmat(i1, i2)
+% Z(i1, i2, :)
 
 function Zred = ReducedZMatrix(this, fs)
     this.InitializeZMatrix(fs);
     tc = tic;
     Nf = length(fs);
-    Zred = cell(1, Nf);
+    Zred = zeros(this.Nx*this.Ny, this.Nx*this.Ny, length(fs));
     for(fi = 1:Nf)
         Zmati = this.Zmat{fi};
 
@@ -35,7 +36,7 @@ function Zred = ReducedZMatrix(this, fs)
 
         % Matrix version of the input impedance calculation
         % Yields the reduced Z-matrix without the terminations
-        Zred{fi} = ZNL - ZNLL * pinv(ZL) * ZLNL;
+        Zred(:, :, fi) = ZNL - ZNLL * pinv(ZL) * ZLNL;
     end
 
     dt = toc(tc);

@@ -16,55 +16,54 @@ walled = 0;
 dedge = 0.25*l0;
 zfeed = 100;
 
-% Number of unit cells.
-Nx = 3;
-Ny = 3;
-fs = (9:4:35) * 1e9;
-% fs2 = (10:4:35) * 1e9;
-% fs3 = (11:4:35) * 1e9;
-% fs4 = (12:4:35) * 1e9;
-% fs = [fs fs2 fs3 fs4];
-
-[~, hostname] = system('hostname'); hostname = strsplit(hostname, '\n');
-if(strcmp(hostname{1}, 'SRV539'))
-    Nx = 1;
-    Ny = 1;
-    fs = (12:4:52)*1e9;
-%     fs = [fs, (33:35)*1e9];
-end
-
-excitation = ones(Nx, Ny);
-
 % slab = StagedADS(dx/2, l0/4, 3, 1, f0);
 % slab = slab.elements{1};
 % slab = TLine({slab, slab, slab});
+
+% Number of unit cells.
+Nx = 1;
+Ny = 3;
+% Nx = 3;
+% Ny = 3;
+excitation = ones(Nx, Ny);
 % tlineup = TerminatedTLine(slab, FreeSpace());
 tlineup = FreeSpace();
-tlinedown = FreeSpace();
-% tlinedown = ShortedLine(1, 0.25*l0);
+% tlinedown = FreeSpace();
+tlinedown = ShortedLine(1, 0.25*l0);
+% tlineup = TerminatedTLine(StagedADS(dx/2, l0/4, 3, 1, f0), FreeSpace());
 
 slot = Slot(dx, dy, wslot, dslot, walled);
 
-
+fs = (10:2.5:35) * 1e9;
 th = eps * pi/180;
 ph = 0 * pi/180;
 
-if(~exist('array', 'var') || ~isa(array, 'FiniteArray') || array.Nx ~= Nx || array.Ny ~= Ny)
+tc = tic;
+
+% if(~exist('array', 'var') || ~isa(array, 'FiniteArray') || array.Nx ~= Nx || array.Ny ~= Ny)
+%     array = FiniteArray_Slow(slot, tlineup, tlinedown, Nx, Ny, dedge, zfeed);
+% end
+% array.InitializeDs(fs);
+% save(sprintf('%ix%i_Ds', Nx, Ny));
+% % array.InitializeKyInts(fs);
+% % save(sprintf('%ix%i_Ds', Nx, Ny));
+% array.InitializeZMatrix(fs);
+% save(sprintf('%ix%i_Ds', Nx, Ny));
+% Zas = array.GetInputImpedance(fs, excitation);
+
+
+
+
+% if(~exist('array', 'var') || ~isa(array, 'FiniteArray') || array.Nx ~= Nx || array.Ny ~= Ny)
     array = FiniteArray(slot, tlineup, tlinedown, Nx, Ny, dedge, zfeed);
-%     array = FiniteArray_FixedDs(slot, Nx, Ny, dedge, zfeed);
-end
-% Do the frequency points one-by-one.
-% for(f = fs)
-%     array.InitializeDs(f);
-%     save(sprintf('%ix%i_Ds', Nx, Ny));
-%     array.InitializeZMatrix(f);
-%     save(sprintf('%ix%i_ZMatrix', Nx, Ny));
-%     Zas = array.GetInputImpedance(f, excitation);
 % end
 
 array.InitializeDs(fs);
 array.InitializeZMatrix(fs);
+% array.InitializeZMatrix_fs(fs);
 Zas = array.GetInputImpedance(fs, excitation);
+dt = toc(tc);
+dispex('Total computation took %.1fs.\n', dt);
 
 %%
 if(length(fs) > 1)
@@ -84,7 +83,19 @@ else
         addlegendentry(hAx, 'Imag');
         title(hAx,  'Zas');
 end
-    
+
+hFig = figureex;
+for(nx = 1:Nx)
+    for(ny = 1:Ny)
+        hAx = subplot(Nx, Ny, ny+(nx-1)*Ny);
+        hold(hAx, 'on');
+        grid(hAx, 'on');
+        box(hAx, 'on');
+        plot(hAx, fs/1e9, squeeze(real(Zas(nx, ny, :))), 'r');
+        plot(hAx, fs/1e9, squeeze(imag(Zas(nx, ny, :))), 'r--');
+    end
+end
+
 %%
 % Zmat = array.Zmat;
 % 
@@ -96,4 +107,47 @@ end
 %     addlegendentry(hAx, 'Imag');
 %     title(hAx,  'Zmat');
 
-    
+%{*
+% global kxs;
+% global vs;
+
+% f = fs(1);
+% 
+% for(deformedpath = 0:1)
+% %     close(100+deformedpath);
+%     hFig = figureex(2+deformedpath);
+%     for(dny = 0:Ny-1)
+%         hAx = subplot(Ny, 1, dny+1);
+%         kx = kxs{dny+1, deformedpath+1};
+%         v = vs{dny+1, deformedpath+1};
+%         if(isempty(kx))
+%             continue;
+%         end
+%         [kx, I] = sort(kx, 'ComparisonMethod', 'real');
+%         v = v(I);
+% 
+%         if(deformedpath)
+%             % Go to -inf * 1j
+%             k0 = 2*pi*f/c0;
+%             delta = 0.01*k0;
+%             lim1 = -5j.*k0-1.*delta;
+%             lim2 = -5j.*k0+1.*delta+1.5*k0;
+%             % Deform integration path around branch cuts.
+%             integrationpath = [(-1-1j).*delta, (1+1j).*delta, 1.5*k0+1j.*delta, 1.5*k0+1.*delta];
+% 
+%             rightTail = logical((real(kx) > 0) & (imag(kx) <= imag(integrationpath(end))));
+%             v(rightTail) = fliplr(v(rightTail));
+%             kx(rightTail) = fliplr(kx(rightTail));
+% 
+%             kx = FiniteArray.UnfoldKVector(kx, integrationpath);
+%         end
+% 
+%         k0 = 2*pi*f/c0;
+%         plot(hAx, real(kx)./k0, real(v), real(kx)./k0, imag(v));
+%         hold(hAx, 'on');
+%         % figureex; plot(real(v)); plot(imag(v));
+%         title(hAx, sprintf('%s, ny = %i, deformedpath = %i', class(array), dny, deformedpath));
+%     end
+% end
+
+%}

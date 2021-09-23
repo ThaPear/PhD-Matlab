@@ -18,10 +18,9 @@ classdef FiniteArray < handle
         D_fs  % Frequencies for precomputed Ds
         D_interpolants % Interpolant to index at any given kx
         
-        KyInts    % Precomputed ky integrals
-        KyInt_kxs % Kx values for precomputed ky integrals
-        KyInt_fs  % Frequencies for precomputed ky integrals
-        KyInt_interpolants % Interpolant to index at any given kx
+        Dinvs
+        Dinv_kxs
+        Dinv_interpolants
     end
     methods
         function this = FiniteArray(unitcell, tlineup, tlinedown, Nx, Ny, dedge, zfeed)
@@ -34,7 +33,6 @@ classdef FiniteArray < handle
             this.zfeed = zfeed;
         end
         InitializeDs(this, fs);
-        InitializeKyInts(this, fs);
         InitializeZMatrix(this, fs);
         Zas = GetInputImpedance(this, fs, excitation);
         Zred = ReducedZMatrix(this, fs);
@@ -42,6 +40,9 @@ classdef FiniteArray < handle
         [x, v] = Voltage(this, fs, excitation, ny, Npoints);
         ff = Farfield(this, f, excitation, ths, phs, r);
         ff = NormalizedFarfield(this, f, excitation, ths, phs);
+        M = MagneticCurrentSpectrum(this, fs, excitation, kx, ky);
+        [x, v] = Current(this, fs, excitation, ny)
+        Iny = CurrentSpectrum(this, fs, excitation, kx, ny)
         
         BuildCST(this, project, parentcomponent);
     end

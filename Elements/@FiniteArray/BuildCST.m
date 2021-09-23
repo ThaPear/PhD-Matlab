@@ -240,22 +240,4 @@ function BuildCST(this, project, parentcomponent)
         transform.Repetitions('Ny');
         transform.Transform('Shape', 'Translate');
     end
-
-%     %% Mask the entire stratification above and below to ensure it's exactly above the padding & edges
-%     brick.Reset();
-%     brick.Name('Mask');
-%     brick.Component(componentname);
-%     brick.Xrange('-edge_distance-edge_length-padding_x', '(Nx-1)*dx+edge_distance+edge_length+padding_x');
-%     brick.Yrange('-dy/2-padding_y',  '(Ny-1)*dy+dy/2+padding_y');
-%     brick.Zrange(-100, 100);
-%     brick.Create();
-%     brick.Reset();
-%     brick.Name('InverseMask');
-%     brick.Component(componentname);
-%     brick.Xrange('-edge_distance-edge_length-padding_x-10', '(Nx-1)*dx+edge_distance+edge_length+padding_x+10');
-%     brick.Yrange('-dy/2-padding_y-10',  '(Ny-1)*dy+dy/2+padding_y+10');
-%     brick.Zrange(-100, 100);
-%     brick.Create();
-% 
-%     solid.Subtract([componentname, ':InverseMask'], [componentname, ':Mask']);
 end

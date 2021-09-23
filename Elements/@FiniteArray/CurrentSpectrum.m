@@ -1,4 +1,4 @@
-function Vny = VoltageSpectrum(this, fs, excitation, kx, ny)
+function Iny = CurrentSpectrum(this, fs, excitation, kx, ny)
     this.InitializeDs(fs);
     this.InitializeZMatrix(fs);
 
@@ -63,20 +63,16 @@ function Vny = VoltageSpectrum(this, fs, excitation, kx, ny)
         basisfunctions(2:Nx_+1) = {Ffeed};
         basisfunctions{end} = Fright;
         
-        Vny = zeros(size(kx));
+        Iny = zeros(size(kx));
         for(nyp = 0:Ny_-1)
-            if(deformedpath)
-                % TODO: If path is deformed this won't work.
-                error('No.'); %#ok<UNRCH>
-            else
-                interpolationkx = real(kx);
-            end
-            Dinv_interpolant = this.Dinv_interpolants{deformedpath+1, D_fi, ny+1, nyp+1};
-            Dinv = Dinv_interpolant(interpolationkx);
-                
             for(nxp = -1:Nx_)
                 Fp = basisfunctions{nxp+2};
                 xp = basispositions(nxp+2);
+
+                Dinv_interpolant = this.Dinv_interpolants{deformedpath+1, D_fi, ny+1, nyp+1};
+                % TODO: If path is deformed this won't work.
+                interpolationkx = real(kx);
+                Dinv = Dinv_interpolant(interpolationkx);
     
                 % 1x1 slot in free-space closed-form Dinv
 %                 k0 = 2*pi*fs/3e8;
@@ -87,7 +83,7 @@ function Vny = VoltageSpectrum(this, fs, excitation, kx, ny)
                 Fpkx = Fp(kx);
                 for(kxi = 1:length(kx))
 %                     Vny(kxi) = Vny(kxi) + -Dinv(kxi) .* (i(nxp+2,nyp+1) - 1/zfeed_ * v(nxp+2, nyp+1)) .* Fp(kx(kxi)) .* exp(1j .* kx(kxi) .* xp);
-                    Vny(kxi) = Vny(kxi) + -Dinv(kxi) .* (i(nxp+2,nyp+1)) .* Fpkx(kxi) .* exp(1j .* kx(kxi) .* xp);
+                    Iny(kxi) = Iny(kxi) + -(i(nxp+2,nyp+1)) .* Fpkx(kxi) .* exp(1j .* kx(kxi) .* xp);
                 end
             end
         end

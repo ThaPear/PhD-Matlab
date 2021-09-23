@@ -15,8 +15,8 @@ dedge = 0.25*l0;
 
 zfeed = 80;
 
-Nx = 3;
-Ny = 3;
+Nx = 1;
+Ny = 1;
 excitation = ones(Nx, Ny);
 
 tlineup = FreeSpace();
@@ -32,21 +32,21 @@ end
 array.InitializeDs(f);
 array.InitializeZMatrix(f);
 
-kx = linspace(-10*k0, 10*k0, 101);
-ky = zeros(size(kx));
-ky(2) = inf;
+kx = linspace(-10*k0, 10*k0, 10001);
+% ky = zeros(size(kx));
+% ky(2) = inf;
 
-V = array.VoltageSpectrum(f, excitation, kx, ky);
+ny = 0;
 
-
+Vny = array.VoltageSpectrum(f, excitation, kx, ny);
 
 [hFig, hAx] = figureex;
 hAx.ColorOrder = reshape(repmat(lines(7), 1, 3).', [], 3*7).';
 
-plot(hAx, kx, real(V(1, 51)));
-plot(hAx, kx, imag(V(1, 51)), '--');
-plot(hAx, kx, abs(V(1, 51)), ':');
+plot(hAx, kx, real(Vny));
+plot(hAx, kx, imag(Vny), '--');
+plot(hAx, kx, abs(Vny), ':');
 
-plot(hAx, ky, squeeze(real(V(1, 51, :))));
-plot(hAx, ky, squeeze(imag(V(1, 51, :))), '--');
-plot(hAx, ky, squeeze(abs(V(1, 51, :))), ':');
+% plot(hAx, ky, squeeze(real(M(1, 51, :))));
+% plot(hAx, ky, squeeze(imag(M(1, 51, :))), '--');
+% plot(hAx, ky, squeeze(abs(M(1, 51, :))), ':');

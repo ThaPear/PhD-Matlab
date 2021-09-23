@@ -11,21 +11,15 @@ function InitializeDs(this, fs)
 
     dy = this.unitcell.dy;
     wslot = this.unitcell.wslot;
+    walled = this.unitcell.walled;
     tlineup_ = this.tlineup;
     tlinedown_ = this.tlinedown;
 
-    if(this.unitcell.walled)
-        tlinedown_ = [];
-    end
 
     z0 = Constants.z0;
     c0 = Constants.c0;
 
-    % Create a list of all f and nypp combinations
-    [fimat, nyppmat] = meshgrid(1:length(newfs), 0:Ny_-1);
-    fivec = fimat(:);
-    nyppvec = nyppmat(:);
-    N = length(fivec);
+    Nf = length(newfs);
 
     deformedpath = 0;
 
@@ -36,23 +30,18 @@ function InitializeDs(this, fs)
     progress = -1; send(hDataQueue, nan);
 
     % deformedpath: 0 means straight integration path, 1 means deformed integration path
-    for(deformedpath = 0:1)
-        Dlist = cell(1,N);
-        kxlist = cell(1,N);
-        parfor(ni = 1:N) % parfor
+    for(deformedpath = 0)
+        Dinvlist = cell(1,Nf);
+        kxlist = cell(1,Nf);
+        for(fi = 1:Nf)
 %             dispex('Calculating %i.\n', ni);
-            fi = fivec(ni);
             f = newfs(fi); %#ok<PFBNS> % Broadcast variable.
-            nypp = nyppvec(ni);
-
-            lambda = Constants.c0 / f;
-            g = 5/3 * sqrt(wslot * lambda);
 
             %% Determine integration path
             k0 = 2*pi*f / c0;
             % Go to +-inf
             delta_ky = 0.01.*k0;
-            lim1_ky = -100.*k0-1j.*delta_ky;
+            lim1_ky = -5.*k0-1j.*delta_ky;
             lim2_ky = -lim1_ky;
             % Deform integration path around branch cuts.
             integrationpath_ky = [(-1-1j).*delta_ky, (1+1j).*delta_ky];
@@ -76,7 +65,7 @@ function InitializeDs(this, fs)
                 %      N1       | N2
                 %               |
 
-                N1 = 100; % Initial number of points on the horizontal sections
+                N1 = 50; % Initial number of points on the horizontal sections
                 N2 = 10;  % Initial number of points on the diagonal section through the origin
                 newkx = [linspace(lim1, integrationpath(1), N1), ...
                          linspace(integrationpath(1), integrationpath(2), N2+2), ...
@@ -85,6 +74,7 @@ function InitializeDs(this, fs)
                 % Remove the duplicate elements
                 newkx(N1) = [];
                 newkx(end-N1) = [];
+                realnewkx = real(newkx);
             else
                 %% Deformed path
                 % Go to -inf * 1j
@@ -117,117 +107,28 @@ function InitializeDs(this, fs)
                 newkx(N1) = [];          % Same as newkx(N1+1)
                 newkx(end-N1-N2-2) = []; % Same as newkx(end-N1-N2-1)
                 newkx(end-N1) = [];      % Same as newkx(end-N1+1)
+                realnewkx = real(FiniteArray.UnfoldKVector(newkx, integrationpath));
             end
-
-            kx = [];
-            D = [];
-
+            
+            [kxadapt, realkxadapt, Dinvadapt] = adaptivecalc(@(kx) adaptivecalcfun(f, dy, k0, kx, tlineup_, tlinedown_, z0, wslot, Ny_, walled, lim1_ky, lim2_ky, integrationpath_ky), newkx, realnewkx);
+            
             %{
-%             if(deformedpath)
-                [hFig, hAx] = figureex;
-                hFig.Position = [2436         702         501         323];
-                [hFig2, hAx2] = figureex;
-                hFig2.Position = [2442         290         497         290];
-%             end
-            %}
-            it = 0;
-            while(~isempty(newkx) && it < 10 && length(kx) < 15e3)
-                it = it + 1;
-                % Make room for the new D(newkx)
-                D = [D zeros(1, length(newkx))]; %#ok<AGROW> Cannot preallocate due to unknown number of kx.
-                % Remember the indices to be calculated.
-                kxis = length(kx)+1:(length(kx) + length(newkx));
-                % Append new kxs.
-                kx = [kx newkx]; %#ok<AGROW> Cannot preallocate due to unknown number of kx.
-                % Calculate D for the new kxs.
-                for(kxi = kxis)
-                    D(kxi) = -1 ./ (2*pi) .* fastintegral(...
-                        @(kyp) D_Integrand_kyp_old(f, dy, k0, kyp, kx(kxi), tlineup_, tlinedown_, z0, wslot, nypp), ...
-                        lim1_ky, lim2_ky, 'Waypoints', integrationpath_ky);
-                end
-
-                % Sort kx based on the real part.
-                [kx, I] = sort(kx, 'ComparisonMethod', 'real');
-                D = D(I);
-                if(deformedpath)
-                    % The sort sorts by the real part first, then the imaginary part.
-                    % Since the imaginary part of the right tail is negative, it's sorted in
-                    % reverse, so flip it now.
-                    rightTail = logical((real(kx) > 0) & (imag(kx) <= imag(integrationpath(end))));
-                    D(rightTail) = fliplr(D(rightTail));
-                    kx(rightTail) = fliplr(kx(rightTail));
-                end
-
-                errorbound = 0.001;
-%                 if(it < 3)
-%                     % Smaller error bound at first to ensure we find any small features
-%                     errorbound = 1e5;
-%                 else
-%                     errorbound = 1e6;
-%                 end
-                % Calculate first and second derivative of resulting D vector.
-                % The first is an actual derivative, the second shows the change in slope
-                % between sample points, which is an indicator of how well-sampled it is.
-                if(~deformedpath)
-                    dD = (D(2:end) - D(1:end-1)) ./ abs(kx(2:end) - kx(1:end-1));
-                else
-                    % For the deformed path, take the exponent into account.
-                    % The exponent will make it much smoother since large imaginary values
-                    % of kx will pull the result to zero.
-                    % The exponent -1j*kx*g is the worst case since for (x-xp) < 2g the
-                    % straight deformation is used.
-                    dD = (D(2:end) - D(1:end-1)) ./ abs(kx(2:end) - kx(1:end-1)) .* exp(-1j .* kx(2:end) .* 2 .* g);
-                end
-                ddD = (dD(2:end) - dD(1:end-1));
-                % Determine the points where D must be sampled more.
-                % The +1 arises from the indexing used for the derivatives.
-                ind = find(abs(ddD) > errorbound) + 1;
-
-                % Since we will sample after each point, add the previous points as well.
-                ind = unique([ind-1, ind]);
-                % Determine the new kx values to sample at.
-                newkx = (kx(ind) + kx(ind+1))/2;
-%                 dispex('Calculating %i new values on iteration %i.\n', length(newkx), it);
-
-                %% Plots to show the calculated D
-                % Shows D (real, imag) and shows the integration path with calculated points.
-                % Updates on each iteration to show the points which are sampled well enough (black) and the points
-                % which are not (red)
-                %{
-                    if(~deformedpath)
-                        ukx = kx;
-                    else
-                        ukx = FiniteArray.UnfoldKVector(kx, integrationpath);
-                    end
-                    % Plots for debugging
-                    cla(hAx);
-%                     plot(hAx, real(ukx)./k0, real(D .* exp(-1j .* kx .* 2 .* g)), 'k');
-%                     plot(hAx, real(ukx)./k0, imag(D .* exp(-1j .* kx .* 2 .* g)), 'r');
-%                     plot(hAx, real(ukx(ind))./k0, imag(D(ind) .* exp(-1j .* kx(ind) .* 2 .* g)), 'rx');
-                    plot(hAx, real(ukx)./k0, real(D), 'k.');
-                    plot(hAx, real(ukx(ind))./k0, real(D(ind)), 'r.');
-                    plot(hAx, real(ukx)./k0, imag(D), 'kx');
-                    plot(hAx, real(ukx(ind))./k0, imag(D(ind)), 'rx');
-                    title(hAx, sprintf('nypp = %i, deformed = %i, f = %iGHz', nypp, deformedpath, f/1e9));
-                    cla(hAx2);
-                    plot(hAx2, real(ukx(2:end-1))./k0, abs(ddD), 'k');
-                    plot(hAx2, real(ukx(ind(1:end-1)+1))./k0, abs(ddD(ind(1:end-1))), 'rx');
-%                     plot(hAx2, real(kx)./k0, imag(kx)./k0, 'ko');
-%                     plot(hAx2, real(kx(ind))./k0, imag(kx(ind))./k0, 'ro');
-%                     plot(hAx2, real(ukx)./k0, imag(ukx)./k0, 'kx');
-%                     plot(hAx2, real(ukx(ind))./k0, imag(ukx(ind)./k0), 'rx');
-%                     title(hAx2, sprintf('nypp = %i, deformed = %i', nypp, deformedpath));
-                %}
-
-                % If there's no new indices, we're done.
-               if(isempty(ind))
-                    break;
+            % Plot all Dinv.
+            hFig = figureex;
+            for(ny = 1:Ny_)
+                for(nyp = 1:Ny_)
+                    hAx = subplot(Ny_, Ny_, ny+(nyp-1)*Ny_);
+                    hold(hAx, 'on');
+                    grid(hAx, 'on');
+                    box(hAx, 'on');
+                    plot(real(kxadapt)./k0, real(Dinvadapt(:, ny, nyp)));
+                    plot(real(kxadapt)./k0, imag(Dinvadapt(:, ny, nyp)));
                 end
             end
-%             dispex('Finished ni=%i, nypp=%i, fi=%i after calculating %i values in %i iterations (%.2fs).\n', ni, nypp, fi, length(kx), it, toc(tc));
-
-            Dlist{ni} = D;
-            kxlist{ni} = kx;
+            %}
+            
+            Dinvlist{fi} = Dinvadapt;
+            kxlist{fi} = kxadapt;
             send(hDataQueue, nan);
         end
 
@@ -246,72 +147,31 @@ function InitializeDs(this, fs)
                  sprintf('Finalizing...'), ''});
         end
         % Store the calculated Ds and their kx values in the this.Ds and this.D_kxs cells.
-        for(ni = 1:N)
-            fii = find(this.D_fs == newfs(fivec(ni)));
-            nypp = nyppvec(ni);
+        for(fi = 1:Nf)
+            f = newfs(fi);
+            k0 = 2*pi*f/c0;
+            fii = find(this.D_fs == newfs(fi), 1);
 
             % The D vector is pre-interpolated on a fixed set of points to speed up later
             % interpolation.
-            tempkxs = kxlist{ni};
-            tempDs = Dlist{ni};
-
-%             tempkxsold = tempkxs;
-
-            %% Determine integration path
-            f = this.D_fs(fii);
-            k0 = 2*pi*f / c0;
-            delta = 0.01*k0;
-
+            tempkxs = kxlist{fi};
+            tempDs = Dinvlist{fi};
+            
             if(~deformedpath)
-                %% Straight integration path
-                % Go to +-inf
-                delta = 0.01.*k0;
-                lim1 = -100.*k0-1j.*delta;
-                lim2 = -lim1;
-
-                % Determine the points on which to interpolate.
-                newkxs = linspace(real(lim1), real(lim2), 5000);
+                realtempkxs = real(tempkxs);
             else
-                %% Deformed integration path
-                lim1 = -5j.*k0-1.*delta;
-                lim2 = -5j.*k0+1.*delta+1.5*k0;
-                % Deform integration path around branch cuts.
+                delta = 0.01*k0;
                 integrationpath = [(-1-1j).*delta, (1+1j).*delta, 1.5*k0+1j.*delta, 1.5*k0+1.*delta];
-
-%                 tempkxsold = tempkxs;
-                tempkxs = FiniteArray.UnfoldKVector(tempkxs, integrationpath);
-
-                % Unfold the limits of integration such that any point on the path is
-                % available in the resulting interpolated vector.
-                ulims = FiniteArray.UnfoldKVector([lim1, lim2], integrationpath);
-                % Determine the points on which to interpolate.
-                newkxs = linspace(real(ulims(1)), real(ulims(2)), 5000);
+                realtempkxs = real(FiniteArray.UnfoldKVector(tempkxs, integrationpath));
             end
 
-%             % Debug plots
-%             if(deformedpath)
-%                 dkx = min(real(tempkxs(2:end) - tempkxs(1:end-1)));
-%                 dispex('%i elements, %.1f ideally.\n', length(tempkxs), 2*real(lim2)/dkx);
-%                 [hFig, hAx] = figureex(101); 
-%                         plot(hAx, real(tempkxs)./k0, abs(tempDs - interp1(newkxs, interp1(real(tempkxs), tempDs, newkxs), real(tempkxs)))./abs(tempDs));
-%                 [hFig, hAx] = figureex(102); 
-%                         plot(hAx, real(tempkxs)./k0, real(tempDs .* exp(-1j .* tempkxsold .* 2 .* g)));
-%                         plot(hAx, real(tempkxs)./k0, imag(tempDs .* exp(-1j .* tempkxsold .* 2 .* g)), '--');
-%                         plot(hAx, real(newkxs)./k0, real(interp1(real(tempkxs), tempDs .* exp(-1j .* tempkxsold .* 2 .* g), newkxs)), ':');
-%                         plot(hAx, real(newkxs)./k0, imag(interp1(real(tempkxs), tempDs .* exp(-1j .* tempkxsold .* 2 .* g), newkxs)), '-.');
-%                 [hFig, hAx] = figureex(103);
-%                         plot(hAx, real(tempkxsold), imag(tempkxsold), '.');
-%                 figureex(104);
-%                 unfolded = FiniteArray.UnfoldKVector(tempkxsold, integrationpath);
-%                     plot(hAx, real(unfolded), imag(unfolded), '.')
-%             end
-
-            tempDs = interp1(real(tempkxs), tempDs, newkxs);
-            tempkxs = newkxs;
-
-            this.Ds{deformedpath+1, fii, nypp+1} = tempDs;
-            this.D_kxs{deformedpath+1, fii, nypp+1} = real(tempkxs);
-            this.D_interpolants{deformedpath+1, fii, nypp+1} = griddedInterpolant(this.D_kxs{deformedpath+1, fii, nypp+1}, this.Ds{deformedpath+1, fii, nypp+1});
+            for(ny = 0:Ny_-1)
+                for(nyp = 0:Ny_-1)
+                    this.Dinv_interpolants{deformedpath+1, fii, ny+1, nyp+1} = griddedInterpolant(realtempkxs, tempDs(:, ny+1, nyp+1));
+                end
+            end
+            this.Dinvs{deformedpath+1, fii} = tempDs;
+            this.Dinv_kxs{deformedpath+1, fii} = realtempkxs;
         end
         if(~deformedpath)
             progress = 0;
@@ -324,9 +184,9 @@ function InitializeDs(this, fs)
     
     function updateWaitbar(~)
         progress = progress + 1;
-        waitbar(progress/N, hWaitbar, ...
-            {sprintf('%.1f%% Precomputing D...', progress/N/2*100+deformedpath*50), ...
-             sprintf('%i/%i iterations done.', progress, N), ...
+        waitbar(progress/Nf, hWaitbar, ...
+            {sprintf('%.1f%% Precomputing D...', progress/Nf/2*100+deformedpath*50), ...
+             sprintf('%i/%i iterations done.', progress, Nf), ...
              sprintf('%i/%i integration paths done.', deformedpath, 2)});
     end
     delete(hWaitbar);
@@ -334,6 +194,86 @@ function InitializeDs(this, fs)
     dt = toc(tc);
     dispex('Ds: Completed in %s.\n', fancyduration(dt));
 end
+function Dinv = adaptivecalcfun(f, dy, k0, kx, tlineup_, tlinedown_, z0, wslot, Ny, walled, lim1_ky, lim2_ky, integrationpath_ky)
+    kx(kx == 0) = (1+1j)*eps;
+    Dinv = zeros(length(kx), Ny, Ny);
+    Ds = zeros(length(kx), Ny);
+    Ddowns = zeros(length(kx), 1);
+%     Dfss = zeros(length(kx), Ny);
+    parfor(kxii = 1:length(kx)) % parfor
+        if(kxii == round(length(kx)/2))
+        end
+        
+        D = zeros(1, Ny);
+        for(dny = 0:Ny-1)
+            D(dny+1) = 1 ./ (2*pi) .* fastintegral(...
+                @(kyp) D_Integrand_kyp_old(f, dy, k0, kyp, kx(kxii), tlineup_, tlinedown_, z0, wslot, dny, walled), ...
+                lim1_ky, lim2_ky, 'Waypoints', integrationpath_ky);
+        end
+        K = -1i*sqrt(-(k0.^2-kx(kxii).^2));
+        Dfs = [-0.5/k0/z0*(k0^2-kx(kxii).^2).*besselj(0,wslot/4*K)*besselh(0,2,wslot/4*K), ... % self
+               -0.5/k0/z0*(k0^2-kx(kxii).^2).*besselh(0,2,K*dy*(1:Ny-1))];                     % mutual
+        if(walled)
+            D = D + Dfs; % Only up
+        else
+            D = D + 2.*Dfs; % Times two for up & down
+        end
+        
+        if(walled)
+            Ddown = 0;
+            for(my = -20:20)
+                Vtm = 1;
+                Vte = 1;
+
+                kym = -2*pi*my/dy;
+                kr = sqrt(kx(kxii).^2 + kym.^2);
+                isTE = 1;    ztedown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
+                isTE = 0;    ztmdown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
+
+                itedown = 1 ./ ztedown;
+                itmdown = 1 ./ ztmdown;
+
+                [Ghm] = SpectralGF.hm(z0, k0, kx(kxii), kym, Vtm, Vte, itmdown, itedown);
+                Ghm_xx_down = Ghm.xx;
+
+                Ddown = Ddown + 1/dy .* Ghm_xx_down .* besselj(0, -2*pi*my/dy*wslot/2);
+            end
+        else
+            Ddown = 0;
+        end
+%         Ddowns(kxii) = Ddown;
+%         Ds(kxii, :) = D;
+        % Add Ddown to the self.
+        D(1) = D(1) + Ddown;
+        
+        Dmat = complextoeplitz(D);
+        Dinv(kxii, :, :) = pinv(Dmat);
+    end
+    %{
+    for(ny = 1:Ny)
+    [~, ~] = figureex(101);
+        hAx = subplot(Ny, 1, ny);
+        hold(hAx, 'on'); grid(hAx, 'on'); box(hAx, 'on');
+%         repeatcolormap(hAx, 2);
+        plot(hAx, real(kx./k0), real(Ds(:,ny)), 'x');
+        plot(hAx, real(kx./k0), imag(Ds(:,ny)), 'o')
+    end
+    %}
+    %{
+    [~, hAx] = figureex(100);
+        plot(hAx, real(kx./k0), real(Ddowns), 'x');
+        plot(hAx, real(kx./k0), imag(Ddowns), 'o')
+    %}
+    %{
+    [~, hAx] = figureex;
+        hAx.ColorOrder = lines(Ny);
+        plot(hAx, real(kx./k0), real(Ds));
+        plot(hAx, real(kx./k0), imag(Ds), '--')
+        plot(hAx, real(kx./k0), real(Dfss), 'x');
+        plot(hAx, real(kx./k0), imag(Dfss), 'o')
+    %}
+end
+%{
 function v = D_Integrand_kyp(f, dy, k0, kyp, kx, tlineup, tlinedown, z0, wslot, nypp)
     Vtm = 1;
     Vte = 1;
@@ -381,11 +321,30 @@ function v = D_Integrand_kyp(f, dy, k0, kyp, kx, tlineup, tlinedown, z0, wslot, 
 
     v = Gxx.*besselj(0, kyp.*wslot./2).*exp(-1j.*kyp.*nypp.*dy);
 end
-function v = D_Integrand_kyp_old(f, dy, k0, kyp, kx, tlineup, tlinedown, z0, wslot, nypp)
-    Gxx = GreensFunction(f, k0, kx, kyp, tlineup, tlinedown, z0);
-    v = Gxx.*besselj(0, kyp.*wslot./2).*exp(-1j.*kyp.*nypp.*dy);
+%}
+function integrand = D_Integrand_kyp_old(f, dy, k0, kyp, kx, tlineup, tlinedown, z0, wslot, dny, walled)
+    [Gxxup, Gxxdown] = GreensFunction(f, k0, kx, kyp, tlineup, tlinedown, z0, walled);
+    vup = Gxxup.*besselj(0, kyp.*wslot./2).*exp(-1j.*kyp.*dny.*dy);
+    vdown = Gxxdown.*besselj(0, kyp.*wslot./2).*exp(-1j.*kyp.*dny.*dy);
+    
+    % Free-space
+    fsup = FreeSpace();
+    fsdown = [];
+    if(~isempty(tlinedown))
+        fsdown = fsup;
+    end
+    [Gxxfsup, Gxxfsdown] = GreensFunction(f, k0, kx, kyp, fsup, fsdown, z0, walled);
+    
+    vfsup = Gxxfsup.*besselj(0, kyp.*wslot./2).*exp(-1j.*kyp.*dny.*dy);
+    vfsdown = Gxxfsdown.*besselj(0, kyp.*wslot./2).*exp(-1j.*kyp.*dny.*dy);
+    
+    vup(abs(kyp) > 5*k0) = vfsup(abs(kyp) > 5*k0);
+    
+    integrand = vup + vdown;
+    
+    integrand = integrand - vfsup - vfsdown;
 end
-function Ghm_xx = GreensFunction(f, k0, kx, ky, tlineup, tlinedown, z0)
+function [Ghm_xx_up, Ghm_xx_down] = GreensFunction(f, k0, kx, ky, tlineup, tlinedown, z0, walled)
     Vtm = 1;
     Vte = 1;
     
@@ -393,24 +352,43 @@ function Ghm_xx = GreensFunction(f, k0, kx, ky, tlineup, tlinedown, z0)
     isTE = 1;    zteup = tlineup.GetInputImpedance(isTE, f, k0, kr);
     isTE = 0;    ztmup = tlineup.GetInputImpedance(isTE, f, k0, kr);
 
-    iteup = 1 ./ zteup;
-    itmup = 1 ./ ztmup;
+    iteup = Vte ./ zteup;
+    itmup = Vtm ./ ztmup;
 
     [Ghm] = SpectralGF.hm(z0, k0, kx, ky, Vtm, Vte, itmup, iteup);
     Ghm_xx_up = Ghm.xx;
 
-    if(~isempty(tlinedown))
+    if(~walled)
         isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
         isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
 
-        itedown = 1 ./ ztedown;
-        itmdown = 1 ./ ztmdown;
+        itedown = Vte ./ ztedown;
+        itmdown = Vtm ./ ztmdown;
 
         [Ghm] = SpectralGF.hm(z0, k0, kx, ky, Vtm, Vte, itmdown, itedown);
         Ghm_xx_down = Ghm.xx;
     else
         Ghm_xx_down = 0;
     end
-
-    Ghm_xx = Ghm_xx_up + Ghm_xx_down;
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
