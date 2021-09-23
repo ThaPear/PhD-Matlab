@@ -3,7 +3,6 @@ closewaitbars;
 clear;
 SetupPath;
 clear global;
-
 f0 = 31e9;
 c0 = Constants.c0;
 l0 = c0/f0;
@@ -12,12 +11,12 @@ dx = 0.45*l0;
 dy = dx;
 wslot = 0.05*l0;
 dslot = 0.05*l0;
-walled = 0;
+walled = 1;
 dedge = 0.25*l0;
 zfeed = 100;
 
 % Number of unit cells.
-Nx = 10;
+Nx = 7;
 
 fs = (12:1:52)*1e9;
 % fs = 20e9;

@@ -16,10 +16,10 @@ classdef FiniteArrayY < handle
         Dmy_th
         Dmy_ph
         
-        Zmat
-        Zmat_fs
-        Zmat_th
-        Zmat_ph
+        Ymat
+        Ymat_fs
+        Ymat_th
+        Ymat_ph
         
         ints
         ints_fs
@@ -40,6 +40,9 @@ classdef FiniteArrayY < handle
             this.numM = 20;
         end
         function InitializeDs(this, fs, th, ph)
+            if(th == 0)
+                error('Cannot have theta 0.');
+            end
             if(~isempty(this.Dmy_th) && ~isempty(this.Dmy_ph) && (this.Dmy_th ~= th || this.Dmy_ph ~= ph))
                 % If the angle is different, simply wipe it.
                 this.Dmys = [];
@@ -85,47 +88,80 @@ classdef FiniteArrayY < handle
             progress = -progressStep; send(hDataQueue, nan);
             
             Dmys_ = zeros(1, Ni);
+%             D = zeros(1, Ni);
             parfor(ni = 1:Ni) % parfor
+%                 dispex('%i', ni);
                 f = newfs(fimat(ni)); %#ok<PFBNS> Broadcast variable.
                 mx = mxs(mximat(ni)); %#ok<PFBNS> Broadcast variable.
                 nyp = nyps(nypimat(ni)); %#ok<PFBNS> Broadcast variable.
 
                 [k0, kx0, ~, ~] = k(f, 1, th, ph);
                 kxm = kx0 - 2*pi*mx/dx;
-                
-                delta = 0.01*k0;
-                kxm = kxm + 1j .* delta .* sign(kxm);
 
                 %% Calculate the integral for D
                 delta = 0.01.*k0;
-                lim1 = -100.*k0-1j.*delta;
+                lim1 = -500.*k0-1j.*delta;
                 lim2 = -lim1;
                 % Deform integration path around branch cuts.
                 integrationpath = [(-1-1j).*delta, (1+1j).*delta];
-                % Loop version - faster
-                Dmys_(ni) = -1/(2*pi) .* integral(...
+                
+                Dmy = 1/(2*pi) .* integral(...
                     @(ky) D_Integrand(f, dy, k0, ky, kxm, tlineup_, tlinedown_, z0, wslot, nyp, walled), ...
                     lim1, lim2, 'Waypoints', integrationpath);
-                if(abs(Dmys_(ni)) < eps)
-                    dispex('Nope\n');
+                
+                K = -1i*sqrt(-(k0.^2-kxm.^2));
+                if(nyp == 1)
+                    Dfs = -0.5/k0/z0*(k0^2-kxm.^2).*besselj(0,wslot/4*K)*besselh(0,2,wslot/4*K);
+                else
+                    Dfs = -0.5/k0/z0*(k0^2-kxm.^2).*besselh(0,2,K*dy*(nyp-1));
                 end
-                % ArrayValued version
-%                 Dmy = 1/(2*pi) .* integral(...
-%                     @(ky) D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp), ...
-%                     lim1, lim2, 'Waypoints', integrationpath, ...
-%                     'ArrayValued', 1);
+                if(~walled)
+                    Dfs = Dfs .* 2;
+                end
+                Dmys_(ni) = Dmy + Dfs;
+                
+                % Free-space analytical D
+%                 K = -1i.*sqrt(-(k0.^2-kxm.^2));
+%                 if nyp==1
+%                     Dmys_(ni) = -0.5./k0./z0.*(k0.^2-kxm.^2).*besselj(0,wslot./4.*K)*besselh(0,2,wslot./4.*K);
+%                 else
+%                     Dmys_(ni) = -1./k0./z0.*(k0.^2-kxm.^2).*besselh(0,2,K.*dy.*(nyp-1));
+%                 end
+
                 if(mod(ni, progressStep) == 0)
                     send(hDataQueue, nan);
                 end
             end
+            %% Store D matrix
             this.Dmy_fs = [this.Dmy_fs, newfs];
             Dmat = reshape(Dmys_, length(mxs), length(nyps), length(newfs));
+            % Multiply all non-self Ds by two.
+            Dmat(:, 2:end, :) = Dmat(:, 2:end, :) .* 2;
             for(fi = 1:length(newfs))
                 this.Dmys(:, :, this.Dmy_fs == newfs(fi)) = Dmat(:, :, fi);
             end
             this.Dmy_th = th;
             this.Dmy_ph = ph;
             
+
+            %{
+            % Compare to free-space analytical D
+                Dmat2 = reshape(D, length(mxs), length(nyps), length(newfs));
+                figureex;
+                    repeatcolormap(2);
+                    plot(real(Dmat(:,1,1)));
+                    plot(imag(Dmat(:,1,1)), '--');
+                    plot(real(Dmat2(:,1,1)));
+                    plot(imag(Dmat2(:,1,1)), '--');
+                figureex;
+                    repeatcolormap(2);
+                    plot(real(Dmat(:,2,1)));
+                    plot(imag(Dmat(:,2,1)), '--');
+                    plot(real(Dmat2(:,2,1)));
+                    plot(imag(Dmat2(:,2,1)), '--');
+            %}
+            
+            %% Waitbar update
             function updateWaitbar(~)
                 progress = progress + progressStep;
                 waitbar(progress/Ni, hWaitbar, ...
@@ -133,20 +169,23 @@ classdef FiniteArrayY < handle
                      sprintf('%i/%i iterations done.', progress, Ni)});
             end
             delete(hWaitbar);
-            
+            %%
             dt = toc(tc);
             dispex('Ds: Completed in %s.\n', fancyduration(dt));
         end
-        function InitializeZMatrix(this, fs, th, ph)
-            if(~isempty(this.Zmat_th) && ~isempty(this.Zmat_ph) && (this.Zmat_th ~= th || this.Zmat_ph ~= ph))
+        function InitializeYMatrix(this, fs, th, ph)
+            if(th == 0)
+                error('Cannot have theta 0.');
+            end
+            if(~isempty(this.Ymat_th) && ~isempty(this.Ymat_ph) && (this.Ymat_th ~= th || this.Ymat_ph ~= ph))
                 % If the angle is different, simply wipe it.
-                this.Zmat = [];
-                this.Zmat_fs = [];
-                this.Zmat_th = [];
-                this.Zmat_ph = [];
+                this.Ymat = [];
+                this.Ymat_fs = [];
+                this.Ymat_th = [];
+                this.Ymat_ph = [];
             end
             
-            newfs = setdiff(fs, this.Zmat_fs);
+            newfs = setdiff(fs, this.Ymat_fs);
             if(length(newfs) < 1)
                 return;
             end
@@ -163,10 +202,14 @@ classdef FiniteArrayY < handle
             walled = this.unitcell.walled;
             
             z0 = Constants.z0;
+            zfeed_ = this.zfeed;
             
+            tlineup_ = this.tlineup;
             tlinedown_ = this.tlinedown;
             
-            mxs = [-this.numM:this.numM].';
+            Ny_ = this.Ny;
+            
+            mxs = [-this.numM:this.numM];
             mys = mxs;
             nyps = 1:this.Ny;
             Nf = length(newfs);
@@ -182,78 +225,107 @@ classdef FiniteArrayY < handle
             Dmys_ = this.Dmys;
             Dmy_fs_ = this.Dmy_fs;
             
-            ints = zeros(length(mxs), this.Ny, Nf);
-            Zmat_ = zeros(this.Ny, this.Ny, Nf);
+            Ymat_ = zeros(this.Ny, this.Ny, Nf);
             % TODO: Can be sliced into fi, kxm, and nyp for more parallelization.
-            for(fi = 1:Nf) % parfor
+            parfor(fi = 1:Nf) % parfor
                 f = newfs(fi);
-                Dmy = Dmys_(:, :, Dmy_fs_ == f); %#ok<PFBNS> Broadcast variable
+                Dmy = Dmys_(:, :, Dmy_fs_ == f).'; %#ok<PFBNS> Broadcast variable
 
-                [k0, kx0, ~, ~] = k(f, 1, th, ph);
+                [k0, kx0, ky0, ~] = k(f, 1, th, ph);
                 kxm = kx0 - 2*pi*mxs/dx;
                 
-                %% Calculate Ddown
-                Ddown = 0;
-                if(walled)
-                    for(myi = 1:length(mys))
-                        my = mys(myi);
-                        kym =  - 2*pi*my/dy;
-
-                        Vte = 1;
-                        Vtm = 1;
-
-                        kr = sqrt(kxm.^2 + kym.^2);
-                        isTE = 1;    ztedown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
-                        isTE = 0;    ztmdown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
-
-                        itedown = 1 ./ ztedown;
-                        itmdown = 1 ./ ztmdown;
-
-                        [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmdown, itedown);
-                        Ghm_xx_down = Ghm.xx;
-
-                        Ddown = Ddown + -1/dy .* Ghm_xx_down .* besselj(0, -2*pi*my/dy*wslot/2);
+                %% Calculate infinite case
+                Dinfdown = 0;
+                Dinfup = 0;
+                for(myi = 1:length(mys))
+                    my = mys(myi);
+                    kym = ky0 - 2*pi*my/dy;
+                    
+                    if(myi == 21)
+                        aaaa = 1;
                     end
+
+                    Vte = 1;
+                    Vtm = 1;
+
+                    % Up
+                    kr = sqrt(kxm.^2 + kym.^2);
+                    isTE = 1;    zteup = tlineup_.GetInputImpedance(isTE, f, k0, kr);
+                    isTE = 0;    ztmup = tlineup_.GetInputImpedance(isTE, f, k0, kr);
+
+                    iteup = Vte ./ zteup;
+                    itmup = Vtm ./ ztmup;
+
+                    [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmup, iteup);
+                    Ghm_xx_up = Ghm.xx;
+                    
+                    Dinfup = Dinfup + 1/dy .* Ghm_xx_up .* besselj(0, -2*pi*my/dy*wslot/2);
+
+                    % Down
+                    if(walled)
+                        kym = - 2*pi*my/dy;
+                    end
+                    kr = sqrt(kxm.^2 + kym.^2);
+                    isTE = 1;    ztedown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
+                    isTE = 0;    ztmdown = tlinedown_.GetInputImpedance(isTE, f, k0, kr);
+
+                    itedown = Vte ./ ztedown;
+                    itmdown = Vtm ./ ztmdown;
+
+                    [Ghm] = SpectralGF.hm(z0, k0, kxm, kym, Vtm, Vte, itmdown, itedown);
+                    Ghm_xx_down = Ghm.xx;
+
+                    Dinfdown = Dinfdown + 1/dy .* Ghm_xx_down .* besselj(0, -2*pi*my/dy*wslot/2);
+                end
+%                 Dinf = Dinfdown + Dinfup;
+%                 Zinf   =  -1./dx .* sum(sinc(kxm .* dslot ./ (2.*pi)).^2 ./ (Dinf));
+%                 Vinf = -sinc(kxm*dslot/2/pi) ./ Dinf ./ Zinf;
+
+                %% Determine Ddown
+                if(walled)
+                    Ddown = Dinfdown;
+                else
+                    Ddown = zeros(size(kxm));
                 end
 
-                %% Calculate the integral for Z
-                lim1 = -pi/dy;
-                lim2 = -lim1;
-                % Loop version
-%                 int = zeros(length(kxm), length(nyp));
-%                 for(kxmi = 1:length(kxm))
-%                     for(nypi = 1:length(nyp))
-%                         int(kxmi, nypi) = integral(...
-%                             @(ky) Z_Integrand2(ky, dy, 1, nyp(nypi), nyp.', Dmy(kxmi, :).'), ...
-%                             lim1, lim2);
-%                     end
-%                 end
-                % ArrayValued version - equally fast but simpler.
-                int = integral(...
-                    @(ky) Z_Integrand(ky, dy, 1, nyps, Dmy, Ddown), ...
-                    lim1, lim2, ...
-                    'ArrayValued', 1);
-                
-                ints(:, :, fi) = int;
-                
-                %% Perform the sum for Z & build Z matrix
-                Zv = 1./dx .* sum(sinc(kxm.*dslot./(2*pi)).^2 .* dy./(2*pi) .* int, 1);
+                % Only add Ddown to the self.
+                mulDdown = zeros(Ny_, 1);
+                mulDdown(1) = 1;
+
+                %% Calculate single-slot case
+                Dsingle = Dmy(1,:) + Ddown;
+                Zsingle = 1 ./ dx .* sum(-sinc(kxm .* dslot/(2*pi)).^2 ./ Dsingle);
+                Vsingle = 1 ./ Zsingle .* -sinc(kxm .* dslot/(2*pi)) ./ Dsingle;
+                % Check normalization, aa should be 1+0j
+%                 aa = 1 ./ dx .* sum(Vsingle .* sinc(kxm .* dslot / (2*pi)));
+                % Subtract the voltage drop due to the resistance zfeed.
+%                 Yl = 1 ./ zfeed_;
+%                 Ysingle = 1 ./ Zsingle;
+%                 a = 1 ./(-1./dx .* sum(sinc(kxm .* dslot./(2*pi)) ./ Dsingle) .* (Ysingle./(Ysingle+Yl)));
+%                 Vsingle = a .* -sinc(kxm .* dslot./(2.*pi)) ./ Dsingle;
+    
+                Yterms = zeros(Ny_, length(kxm));
+                for(ik = 1:length(kxm))
+                    Yterms(:, ik) = (Dmy(:, ik) + Ddown(ik) .* mulDdown) .* Vsingle(ik) .* sinc(kxm(ik) .* dslot/(2*pi));
+%                     Yterms(:, ik) = (Dmy(:, ik) + Ddown(ik) .* mulDdown) .* Vinf(ik) .* sinc(kxm(ik) .* dslot/(2*pi));
+                end
+                Yv = zeros(1,Ny_);
+                for(ny = 1:Ny_)
+                    Yv(ny) = 1 ./ (1./dx .* sum(sinc(kxm .* dslot/(2*pi)).^2)) .* ...
+                        (-1 ./ dx .* sum(Yterms(ny,:)));
+                end
                 
                 % Build the toeplitz matrix
-                Zmat_(:, :, fi) = toeplitz(real(Zv)) + 1j .* toeplitz(imag(Zv));
+                Ymat_(:, :, fi) = toeplitz(real(Yv)) + 1j .* toeplitz(imag(Yv));
                 
                 send(hDataQueue, nan);
             end
-            this.ints_fs = [this.ints_fs, newfs];
+            this.Ymat_fs = [this.Ymat_fs, newfs];
             for(fi = 1:length(newfs))
-                this.ints(:, :, this.ints_fs == newfs(fi)) = ints(:, :, fi);
+                this.Ymat(:, :, this.Ymat_fs == newfs(fi)) = Ymat_(:, :, fi);
             end
-            this.Zmat_fs = [this.Zmat_fs, newfs];
-            for(fi = 1:length(newfs))
-                this.Zmat(:, :, this.Zmat_fs == newfs(fi)) = Zmat_(:, :, fi);
-            end
-            this.Zmat_th = th;
-            this.Zmat_ph = ph;
+            this.Ymat_th = th;
+            this.Ymat_ph = ph;
             
             function updateWaitbar(~)
                 progress = progress + progressStep;
@@ -265,51 +337,19 @@ classdef FiniteArrayY < handle
             
             dt = toc(tc);
             dispex('Z matrix: Completed in %s.\n', fancyduration(dt));
-            
-            %% Old method (Thesis Riccardo)
-%             Zas = zeros(this.Ny, length(fs));
-%             for(fi = 1:length(fs))
-%                 Zs = zeros(1, Ny_);
-%                 for(ny = 1:Ny_)
-% %                 dispex('Calculating unit cell %i.\n', ny);
-%                     f = fs(fi);
-%                     
-%                     [k0, kx0, ~, ~] = k(f, 1, th, ph);
-%                     
-%                     delta = 0.01.*k0;
-%                     lim1 = -50.*k0-1j.*delta;
-%                     lim2 = -lim1;
-%                     
-%                     [gridnyp, gridmx] = meshgrid(nyp, mx_lin);
-% 
-%                     % Up stratification
-%                     int = 1 ./ (2*pi) .* integral(...
-%                         @(ky) Z_Integrand(f, k0, z0, kx0, gridmx, ky, dx, dy, ...
-%                                           wslot, tlineup, tlinedown, ny, gridnyp), ...
-%                         lim1, lim2, 'Waypoints', [(-1-1j).*delta, (1+1j).*delta], ...
-%                         'ArrayValued', 1);
-%                     
-%                     D = sum(ay_./ay_(ny).*int, 2);
-%                     
-%                     kxm = kx0 - 2.*pi.*mx_lin./dx;
-%                     Z = -1./dx .* sum(sinc(kxm .* dslot ./ (2*pi)).^2 ./ D.');
-%                     Zs(ny) = Z;
-%                 end
-%                 Zas(:, fi) = Zs;
-%             end
         end
         
         function Zas = GetInputImpedance(this, fs, th, ph)
             this.InitializeDs(fs, th, ph);
-            this.InitializeZMatrix(fs, th, ph);
+            this.InitializeYMatrix(fs, th, ph);
             
             dispex('Active Z: Calculating for %i frequencies, %i slots.\n', length(fs), this.Ny);
             tc = tic;
             
             Nf = length(fs);
             
-            Zmat_ = this.Zmat;
-            Zmat_fs_ = this.Zmat_fs;
+            Ymat_ = this.Ymat;
+            Ymat_fs_ = this.Ymat_fs;
             
             Ny_ = this.Ny;
             ay0_ = this.ay;
@@ -326,18 +366,18 @@ classdef FiniteArrayY < handle
                 [~, ~, ky0, ~] = k(f, 1, th, ph);
                 ay_ = ay0_ .* exp(-1j .* ky0 .* (1:Ny_) .* dy);
                 
-                Z = Zmat_(:, :, Zmat_fs_ == f); %#ok<PFBNS> Broadcast variable
+                Y = Ymat_(:, :, Ymat_fs_ == f); %#ok<PFBNS> Broadcast variable
                 
-                % Add ZL
-                Zp = Z + eye(Ny_) .* zfeed_;
+                % Add Yl
+                Yl = eye(Ny_) ./ zfeed_;
+                Yp = Y + Yl;
                 
                 %% Solve the equivalent circuit and find Zactive
-                i = ay_;
                 % Solve for v
-                v = Zp\(zfeed_*Z*i.'); % Identical to v = pinv(Zp) * (zfeed_*Z*i.');
+                v = Yp \ (ay_.'); % Identical to v = pinv(Yp) * (i.');
+                i = Yp \ Y * ay_.';
                 % Calculate input impedance
-                Yas = i.' ./ v - 1./zfeed_;
-                Zas(:, fi) = 1./Yas;
+                Zas(:, fi) = v ./ i;
             end
             
             dt = toc(tc);
@@ -381,6 +421,7 @@ classdef FiniteArrayY < handle
 
             transform = project.Transform();
 
+            project.NextCommandConditional('Ny>1');
             transform.Reset();
                 transform.Name([componentname, '/UnitCell']);
                 transform.Vector(0, 'dy', 0);
@@ -391,7 +432,7 @@ classdef FiniteArrayY < handle
 
             transform.Reset();
                 transform.Name([componentname, '/Stratification']);
-                transform.Vector(0, '-dy', 0);
+                transform.Vector(0, '-dy*2', 0);
                 transform.MultipleObjects(0);
                 transform.GroupObjects(0);
                 transform.Repetitions('1');
@@ -402,7 +443,7 @@ classdef FiniteArrayY < handle
                 transform.Vector(0, 'dy', 0);
                 transform.MultipleObjects(1);
                 transform.GroupObjects(1);
-                transform.Repetitions('Ny+1');
+                transform.Repetitions('Ny+3');
             transform.Transform('Shape', 'Translate');
             
             brick = project.Brick();
@@ -410,14 +451,14 @@ classdef FiniteArrayY < handle
                 brick.Name('SlotPlane');
                 brick.Component(componentname);
                 brick.Xrange('-dx/2', 'dx/2');
-                brick.Yrange('-3/2*dy', '-dy/2');
+                brick.Yrange('-5/2*dy', '-dy/2');
                 brick.Zrange(0, 0);
                 brick.Material('PEC');
             brick.Create();
             
             transform.Reset();
                 transform.Name([componentname, ':SlotPlane']);
-                transform.Vector(0, '(Ny+1)*dy', 0);
+                transform.Vector(0, '(Ny+2)*dy', 0);
                 transform.MultipleObjects(1);
                 transform.GroupObjects(1);
                 transform.Repetitions('1');
@@ -431,6 +472,7 @@ classdef FiniteArrayY < handle
 %                 brick.Material('PEC');
 %             brick.Create();
 
+            project.NextCommandConditional('Ny>1');
             transform.Reset();
                 transform.Name('port1 (SlotFeed)');
                 transform.Vector(0, 'dy', 0);
@@ -468,49 +510,49 @@ function v = D_Integrand(f, dy, k0, ky, kxm, tlineup, tlinedown, z0, wslot, nyp,
         Gxxdown = 0;
     end
 
-    Gxx = Gxxup + Gxxdown;
+    vup = Gxxup.*besselj(0, ky.*wslot./2).*exp(-1j.*ky.*dy.*(nyp-1));
+    vdown = Gxxdown.*besselj(0, ky.*wslot./2).*exp(-1j.*ky.*dy.*(nyp-1));
+    
+    %% Free-space
+    fs = FreeSpace();
+    Vtm = 1;
+    Vte = 1;
 
-    v = Gxx.*besselj(0, ky.*wslot./2).*exp(-1j.*ky.*dy.*(nyp-1));
+    kr = sqrt((kxm).^2 + (ky ).^2);
+    isTE = 1;    zteup = fs.GetInputImpedance(isTE, f, k0, kr);
+    isTE = 0;    ztmup = fs.GetInputImpedance(isTE, f, k0, kr);
+
+    iteup = 1 ./ zteup;
+    itmup = 1 ./ ztmup;
+
+    [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmup, iteup);
+    Gxxup = Ghm.xx;
+
+    if(~walled)
+        isTE = 1;    ztedown = fs.GetInputImpedance(isTE, f, k0, kr);
+        isTE = 0;    ztmdown = fs.GetInputImpedance(isTE, f, k0, kr);
+
+        itedown = 1 ./ ztedown;
+        itmdown = 1 ./ ztmdown;
+
+        [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmdown, itedown);
+        Gxxdown = Ghm.xx;
+    else
+        Gxxdown = 0;
+    end
+    
+    vfsup = Gxxup.*besselj(0, ky.*wslot./2).*exp(-1j.*ky.*dy.*(nyp-1));
+    vfsdown = Gxxdown.*besselj(0, ky.*wslot./2).*exp(-1j.*ky.*dy.*(nyp-1));
+    %%
+    
+%     v(isnan(v)) = vfs(isnan(v));
+%     v(abs(ky) > 100*k0) = vfs(abs(ky) > 100*k0);
+    
+    vup(abs(ky) > 1*k0) = vfsup(abs(ky) > 1*k0);
+    
+    v = vup + vdown - vfsup - vfsdown;
     
 %     % Assume anything that is NaN can be approximated by 0.
 %     v(isnan(v)) = 0;
 end
-
-function v = Z_Integrand(ky, dy, ny, nyp, Dmy, Ddown)
-    s = sum(Dmy .* exp(1j .* (nyp-1) .* ky .* dy), 2) + Ddown;
-    v = exp(-1j .* ky .* dy .* abs(ny-nyp)) ./ s;
-end
-%% Non-arrayvalued version
-function v = Z_Integrand2(ky, dy, ny, nyp, nypp, Dmy, Ddown)
-    s = sum(Dmy .* exp(1j .* (nypp-1) .* ky .* dy), 1) + Ddown;
-    v = exp(-1j .* ky .* dy .* abs(ny-nyp)) ./ s;
-end
-%% Old method (Thesis Riccardo)
-% function v = Z_Integrand(f, k0, z0, kx0, gridmx, ky, dx, dy, wslot, tlineup, tlinedown, ny, gridnyp)
-%     Vtm = 1;
-%     Vte = 1;
-% 
-%     kxm = kx0 - 2*pi*mx/dx;
-%     kr = sqrt((kxm).^2 ...
-%             + (ky ).^2);
-%     isTE = 1;    zteup = tlineup.GetInputImpedance(isTE, f, k0, kr);
-%     isTE = 0;    ztmup = tlineup.GetInputImpedance(isTE, f, k0, kr);
-% 
-%     iteup = 1 ./ zteup;
-%     itmup = 1 ./ ztmup;
-% 
-%     [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmup, iteup);
-%     GFxxup = Ghm.xx;
-%     
-%     isTE = 1;    ztedown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
-%     isTE = 0;    ztmdown = tlinedown.GetInputImpedance(isTE, f, k0, kr);
-% 
-%     itedown = 1 ./ ztedown;
-%     itmdown = 1 ./ ztmdown;
-% 
-%     [Ghm] = SpectralGF.hm(z0, k0, kxm, ky, Vtm, Vte, itmdown, itedown);
-%     GFxxdown = Ghm.xx;
-% 
-%     v = besselj(0, ky.*wslot./2) .* (GFxxup + GFxxdown) .* exp(1j .* ky .* (nyp - ny) .* dy);
-% end
 
