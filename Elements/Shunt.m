@@ -1,3 +1,20 @@
+% Places the given impedance in shunt with the transmission line.
+%   impedance can be any element that implements GetInputImpedance, this includes (terminated) transmisson lines.
+%      o       o
+%      |       |
+%      |       |
+%      |--[Z]--| <-- Z = impedance
+%      |       |
+%      |       |
+%      o       o
+% Or in case of a (terminated) transmission line
+%      o       o
+%      |       |  |-------|
+%      |       o--|       |---|
+%      |       |  | tline |  [Z] <-- tline = this.impedance, Z = tline.terminator
+%      o----------|       |---|
+%      |       |  |-------|
+%      o       o
 classdef Shunt < Element
     properties
         impedance

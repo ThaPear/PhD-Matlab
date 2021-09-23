@@ -1,3 +1,20 @@
+% Places the given impedance in series with the transmission line.
+%      o       o
+%      |       |
+%      |       |
+%      |      [Z] <-- Z = impedance
+%      |       |
+%      |       |
+%      o       o
+% Or in case of a (terminated) transmission line
+%      o       o
+%      |       |  |-------|
+%      |       ---|       |---|  <-- tline = this.impedance
+%      |          | tline |  [Z] <-- Z = tline.terminator
+%      |       ---|       |---|
+%      |       |  |-------|
+%      o       o
+
 classdef Series < Element
     properties
         impedance

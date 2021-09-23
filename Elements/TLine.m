@@ -34,7 +34,7 @@ classdef TLine < Element
             ABCD = ABCDMatrix(1, 0, ...
                               0, 1);
             for(i = 1:length(this.elements))
-                
+                % Cascade the ABCD matrices of the elements in the transmission line.
                 element = this.elements{i};
                 ABCDelement = element.GetABCD(isTE, f, k0, kr);
                 if(any(isnan(ABCDelement.A(:))) || any(isnan(ABCDelement.B(:))) || any(isnan(ABCDelement.C(:))) || any(isnan(ABCDelement.D(:))))
@@ -93,85 +93,9 @@ classdef TLine < Element
             % Height of the structure under test.
             d = this.GetHeight();
             [er, mu] = EpsilonMu(f, Ste, Stm, Ste0, Stm0, d, th0, th, ph);
-%             
-%             etaTE  = sqrt(((1+Ste.s11 ).^2 - Ste.s21.^2 ) ./ ((1-Ste.s11 ).^2 - Ste.s21.^2 )) .* sec(th );
-%             etaTE0 = sqrt(((1+Ste0.s11).^2 - Ste0.s21.^2) ./ ((1-Ste0.s11).^2 - Ste0.s21.^2)) .* sec(th0);
-%             
-%             etaTM  = sqrt(((1+Stm.s11 ).^2 - Stm.s21.^2 ) ./ ((1-Stm.s11 ).^2 - Stm.s21.^2 )) .* cos(th );
-%             etaTM0 = sqrt(((1+Stm0.s11).^2 - Stm0.s21.^2) ./ ((1-Stm0.s11).^2 - Stm0.s21.^2)) .* cos(th0);
-%             
-%             if(real(etaTE)  < 0); etaTE  = -etaTE;  end
-%             if(real(etaTM)  < 0); etaTM  = -etaTM;  end
-%             if(real(etaTE0) < 0); etaTE0 = -etaTE0; end
-%             if(real(etaTM0) < 0); etaTM0 = -etaTM0; end
-%             
-%             zetaTE  = Ste.s21  ./ (1 - Ste.s11 .*((etaTE .*cos(th ) - 1) ./ (etaTE  .* cos(th ) + 1)));
-%             zetaTE0 = Ste0.s21 ./ (1 - Ste0.s11.*((etaTE0.*cos(th0) - 1) ./ (etaTE0 .* cos(th0) + 1)));
-%             
-%             zetaTM  = Stm.s21  ./ (1 - Stm.s11 .*((etaTM ./cos(th ) - 1) ./ (etaTM  ./ cos(th ) + 1)));
-%             zetaTM0 = Stm0.s21 ./ (1 - Stm0.s11.*((etaTM0./cos(th0) - 1) ./ (etaTM0 ./ cos(th0) + 1)));
-%             
-%             nTE  = @(m) (sqrt( ( (log(abs(zetaTE )) + 1j.*(angle(zetaTE ) + 2*pi*m)) ./ (-1j.*k0.*d)).^2 + sin(th ).^2));
-%             nTE0 = @(m) sqrt( ( (log(abs(zetaTE0)) + 1j.*(angle(zetaTE0) + 2*pi*m)) ./ (-1j.*k00.*d)).^2 + sin(th0).^2);
-%             
-%             nTM  = @(m) sqrt(((log(abs(zetaTM )) + 1j.*(angle(zetaTM ) + 2*pi*m)) ./ (-1j.*k0.*d)).^2 + sin(th ).^2);
-%             nTM0 = @(m) sqrt(((log(abs(zetaTM0)) + 1j.*(angle(zetaTM0) + 2*pi*m)) ./ (-1j.*k00.*d)).^2 + sin(th0).^2);
-%             
-%             
-% %             eta  = @(S, th)     sqrt(((1+S.s11).^2 - S.s21.^2) ./ ((1-S.s11).^2 - S.s21.^2)) .* sec(th);
-% %             zeta = @(S, th)     S.s21 ./ (1 - S.s11.*((eta(S, th).*cos(th) - 1) ./ (eta(S, th) .* cos(th) + 1)));
-% %             n    = @(S, th, m)  sqrt(((log(abs(zeta(S, th))) + 1j.*angle(zeta(S, th)) + 2*pi*m) ./ (-1j.*k0.*d)).^2) + sin(th).^2;
-%             
-%             % Epsilon as function of m.
-%             erx  = @(m)         nTM0(m) ./ etaTM0;
-%             ery  = @(m)         nTE0(m) ./ etaTE0;
-%             erz  = @(m)         erx(m) .* sin(th).^2 ./ (sin(th).^2 - nTM(m).^2 + nTM0(m).^2);
-%             erz2 = @(m)         sin(th).^2 ./ (nTM0(m) .* etaTM0 - erx(m) .* etaTM.^2);
-%             
-%             mux  = @(m)         (nTE0(m) .* etaTE0);
-%             muy  = @(m)         nTM0(m) .* etaTM0;
-%             % ERROR
-%             muz  = @(m)         sin(th).^2 ./ ((nTE0(m) ./ etaTE0) - mux(m) ./ etaTE.^2);
-%             muz2 = @(m)         mux(m) .* sin(th).^2 ./ (sin(th).^2 - nTE(m).^2 + nTE0(m).^2);
-%             
-%             printvar muz(-3:3);
-%             printvar muz2(-3:3);
-%             ms = -3:1:3;
-%             
-%             errors = abs(erz(ms) - erz2(ms));
-%             [~, idx] = min(errors); % Get index of lowest value
-%             mbar = ms(idx);         % Get corresponding m.
-%             
-%             errors = abs(muz(ms) - muz2(ms));
-%             [~, idx] = min(errors); % Get index of lowest value
-%             m = ms(idx);            % Get corresponding m.
-%             
-% %             printvar etaTE;
-% %             printvar etaTE0;
-% %             figureex(3);
-% %                 plot(real(nTE0(ms)));
-% %                 plot(imag(nTE0(ms)), '--');
-% %                 plot(real(mux(ms)));
-% %                 plot(imag(mux(ms)), '--');
-% %                 legend('nTE0', 'nTE0im', 'mux', 'muxim');
-% %             printvar muz(-3:3)
-% %             printvar muz2(-3:3)
-%             
-% 
-%             % The error minimization doesn't work correctly.
-%             % Use m = mbar = 0 for all calculations.
-% %             mbar = 0;
-% %             m = 0;
-% 
-%             er.x = erx(mbar);
-%             er.y = ery(mbar);
-%             er.z = erz(mbar);
-%             mu.x = mux(m);
-%             mu.y = muy(m);
-%             mu.z = muz2(m);
-            
         end
         function PlotEpsilons(this, fs, hAx)
+            % Plot the permittivity of this line as a function of the given frequencies.
             if(nargin < 3 || isempty(hAx))
                 hFig = figureex;
                 hAx = hFig.CurrentAxes;
@@ -184,13 +108,58 @@ classdef TLine < Element
             end
         end
         function BuildCST(this, project, parentcomponent)
+            if(nargin < 3 || isempty(parentcomponent))
+                parentcomponent = '';
+            end
+            % Build the sub-elements in CST.
             for(i = 1:length(this.elements))
                 this.elements{i}.BuildCST(project, parentcomponent);
             end
         end
-        
-        % Allow indexing of elements by directly doing tline{3} for
-        % tline.elements{3}
+        function flippedtline = Flip(this)
+            % Flip the transmission line upside-down.
+            flippedtline = TLine(this.elements(length(this.elements):-1:1));
+            flippedelements = this.elements(length(this.elements):-1:1);
+            for(i = 1:length(flippedelements))
+                flippedelements{i} = flippedelements{i}.Flip();
+            end
+        end
+        function newline = Flatten(this)
+            newline = this;
+            restart = 1;
+            while(restart)
+                % Assume we don't need to restart.
+                restart = 0;
+                for(iel = 1:length(newline.elements))
+                    el = newline.elements{iel};
+                    if(strcmp(class(el), 'TLine')) %#ok<STISA> 'isa' also accepts subclasses, which we don't want.
+                        % Flatten the sub-TLine.
+                        el = el.Flatten();
+                        % Insert the newly flattened TLine into this one.
+                        newline.elements = [newline.elements(1:iel-1), el.elements, newline.elements(iel+1:end)];
+                        % Restart the iteration of the tline.
+                        restart = 1;
+                        break;
+                    elseif(isa(el, 'Shunt') || isa(el, 'Series'))
+                        if(strcmp(class(el.impedance), 'TLine')) %#ok<STISA> 'isa' also accepts subclasses, which we don't want.
+                            newline.elements{iel}.impedance = el.impedance.Flatten();
+                        elseif(isa(el.impedance, 'TerminatedTLine'))
+                            newline.elements{iel}.impedance = el.impedance.Flatten();
+                        end
+                    elseif(isa(el, 'TerminatedTLine'))
+                        % The TerminatedTLine flattens into a TLine.
+                        el = el.Flatten();
+                        % Insert the newly flattened TLine into this one.
+                        newline.elements = [newline.elements(1:iel-1), el.elements, newline.elements(iel+1:end)];
+                        % Restart the iteration of the tline.
+                        restart = 1;
+                        break;
+                    end
+                end
+            end
+        end
+        % Allow indexing of elements by directly doing tline{3} instead of tline.elements{3}
+        % Disabled because it made indexing very slow.
 %         function varargout = subsref(this, S)
 %             if(S(1).type(1) == '{')%(strcmp(S(1).type, '{}'))
 %                 if(length(S.subs) == 1)

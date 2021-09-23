@@ -3,14 +3,14 @@ classdef Impedance
         Z
     end
     methods
-        function obj = Impedance(Z)
+        function this = Impedance(Z)
             if(nargin < 1)
                 Z = nan;
             end
-            obj.Z = Z;
+            this.Z = Z;
         end
-        function zin = GetInputImpedance(obj, isTE, f, k0, kr)
-            zin = obj.Z;
+        function zin = GetInputImpedance(this, isTE, f, k0, kr)
+            zin = this.Z;
         end
     end
 end

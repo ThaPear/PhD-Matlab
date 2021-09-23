@@ -1,6 +1,15 @@
 % Terminated transmission line. Is terminated with the given terminator.
 %   terminator is expected to be an element with a valid GetInputImpedance.
-
+%
+%      ---[Z]--- <-- Z = terminator
+%      |       |
+%    -------------
+%    |           |
+%    |   tline   |
+%    |           |
+%    -------------
+%      |       |
+%      o       o
 classdef TerminatedTLine < Element
     properties
         tline
@@ -28,9 +37,9 @@ classdef TerminatedTLine < Element
             ind = ABCD.isidentity();
             Zin(ind) = ZL(ind);
             
-            if(any(isnan(Zin)))
+%             if(any(isnan(Zin)))
 %                 breakpoint;
-            end
+%             end
         end
         
         function [ABCD] = GetABCD(this, isTE, f, k0, kr)
@@ -52,6 +61,17 @@ classdef TerminatedTLine < Element
         function BuildCST(this, project, parentcomponent)
             this.tline.BuildCST(project, parentcomponent);
             this.terminator.BuildCST(project, parentcomponent);
+        end
+        function newline = Flatten(this)
+            % Flattens into a TLine with the terminator in Shunt at the end.
+            newline = TLine({this.tline, Shunt(this.terminator)});
+            newline = newline.Flatten();
+        end
+        function flippedline = Flip(this)
+            % A flipped TerminatedTLine will have the termination at the input, so place it there as
+            % a shunt.
+            flippedline = this.tline.Flip();
+            flippedline.elements = [{Shunt(this.terminator)}, flippedline.elements];
         end
     end
 end

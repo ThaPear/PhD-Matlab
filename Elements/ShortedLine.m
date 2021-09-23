@@ -1,3 +1,14 @@
+% Yields the input impedance of a shorted piece of line.
+%      ---------
+%      |       |
+% -   ---     ---
+% |   | |     | |
+% | L | |     | | er
+% |   | |     | |
+% -   ---     ---
+%      |       |
+%      o       o
+
 classdef ShortedLine < Element
     properties
         er

@@ -16,6 +16,9 @@ classdef InfiniteArray < handle
             this.numM = 20;
         end
         function Zas = GetInputImpedance(this, fs, th, ph)
+            if(th == 0)
+                error('Cannot have theta 0.');
+            end
             %% Modes
             mx_lin = [-this.numM:this.numM];
             my_lin = mx_lin;
@@ -32,7 +35,7 @@ classdef InfiniteArray < handle
 %             this = parallel.pool.Constant(this);
             
             Zas = zeros(size(fs));
-            for(fi = 1:length(fs))
+            parfor(fi = 1:length(fs)) % parfor
                 f = fs(fi);
 
                 %% Propagation constants.

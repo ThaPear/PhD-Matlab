@@ -134,5 +134,16 @@ classdef StagedADS < TLine
             % Chop off the last shift, since there's no layer after it.
             ss = ss(1:end-1);
         end
+        function flippedstagedads = Flip(this)
+            flippedstagedads = StagedADS();
+            flippedelements = this.elements(length(this.elements):-1:1);
+            for(i = 1:length(flippedelements))
+                flippedelements{i} = flippedelements{i}.Flip();
+            end
+            flippedstagedads.elements = flippedelements;
+            flippedstagedads.heights = flip(this.heights);
+            flippedstagedads.ers = flip(this.ers);
+            flippedstagedads.isADLs = flip(this.isADLs);
+        end
     end
 end

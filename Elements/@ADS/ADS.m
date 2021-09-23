@@ -107,5 +107,9 @@ classdef ADS < TLine
             
             this.elements = elements;
         end
+        function flippedads = Flip(this)
+            % Flip all ds, ss, ws, and host permittivities.
+            flippedads = ADS(this.p, flip(this.ds), flip(this.ss), flip(this.ws), flip(this.erhosts));
+        end
     end
 end

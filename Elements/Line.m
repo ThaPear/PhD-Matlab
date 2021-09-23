@@ -1,3 +1,14 @@
+
+%      o       o
+%      |       |
+% -   ---     ---
+% |   | |     | |
+% | L | |     | | er
+% |   | |     | |
+% -   ---     ---
+%      |       |
+%      o       o
+
 classdef Line < Element
     properties
         L
@@ -63,17 +74,16 @@ classdef Line < Element
                 zd = Constants.z0 ./ sqrt(this.er);
             else
                 % Vector value [er.x, er.y, er.z]
-                thi = asin(kr./k0);
+                % Get incidence angle of fundamental mode.
+                thi = asin(kr(round(end/2), round(end/2))./k0);
                 if(isTE)
                     n = sqrt(this.er(2) .* this.mu(1) + (1-this.mu(1)./this.mu(3)).*sin(thi));
-                    etad = sqrt(this.mu(1) ./ (this.er(2) - sin(thi).^2 ./ this.mu(3)));
                 else
                     n = sqrt(this.er(1) .* this.mu(2) + (1 - this.er(1)./this.er(3)) .* sin(thi));
-                    etad = sqrt((this.mu(2) - sin(thi).^2./this.er(3))./this.er(1));
                 end
-                zd = etad .* Constants.z0;
-                kzd = -1j .* sqrt(-(k0.^2.*n.^2-k0.^2.*sin(thi).^2));
-                kd = sqrt(kzd.^2 + kr.^2);
+                kd = k0 .* n;
+                kzd = -1j .* sqrt(-(kd.^2-kr.^2));
+                zd = Constants.z0 ./ n;
             end
             
             % Since kzd can be 0, the sin(kzd*L)/(kzd*L) are combined into
@@ -130,22 +140,29 @@ classdef Line < Element
             end
             
             if(length(this.er) > 1 || this.er ~= 1 || length(this.mu) > 1 || this.mu ~= 1)
-                er_ = repmat(this.er, 1, 4-length(this.er)); % Ensure er is 1 by 3.
-                mu_ = repmat(this.mu, 1, 4-length(this.mu)); % Ensure mu is 1 by 3.
+                anisotropic = (length(unique(this.er)) == 1) && (length(unique(this.mu)) == 1);
                 % Create necessary material
                 material = project.Material();
                 material.Reset();
-                materialname = [num2str(er_(1), 5), '_', num2str(er_(2), 5), '_', num2str(er_(3), 5)];
+                if(anisotropic)
+                    er_ = repmat(this.er, 1, 4-length(this.er)); % Ensure er is 1 by 3.
+                    mu_ = repmat(this.mu, 1, 4-length(this.mu)); % Ensure mu is 1 by 3.
+                    materialname = [num2str(er_(1), 5), '_', num2str(er_(2), 5), '_', num2str(er_(3), 5)];
+                    material.Type('Anisotropic');
+                    material.EpsilonX(er_(1));
+                    material.EpsilonY(er_(2));
+                    material.EpsilonZ(er_(3));
+                    material.MuX(mu_(1));
+                    material.MuY(mu_(2));
+                    material.MuZ(mu_(3));
+                else
+                    material.Epsilon(this.er(1));
+                    material.Mu(this.mu(1));
+                    materialname = num2str(this.er(1));
+                end
                 material.Name(materialname);
                 material.Folder('Generated');
-                material.Colour(0, min(1, er_(1)/20), 1);
-                material.Type('Anisotropic');
-                material.EpsilonX(er_(1));
-                material.EpsilonY(er_(2));
-                material.EpsilonZ(er_(3));
-                material.MuX(mu_(1));
-                material.MuY(mu_(2));
-                material.MuZ(mu_(3));
+                material.Colour(0, min(1, this.er(1)/20), 1);
                 material.Transparency(0.5);
                 material.Create();
 

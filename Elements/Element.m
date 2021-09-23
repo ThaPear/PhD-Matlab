@@ -17,5 +17,14 @@ classdef Element
         function BuildCST(this, project, parentcomponent)
             error('BuildCST not defined for objects of class ''%s''.', class(this));
         end
+        function flippedelement = Flip(this)
+            % Nothing by default.
+            flippedelement = this;
+            % Space-separated whitelist.
+            whitelist = 'Line MicrostripLine Shunt Series TXLine';
+            if(~contains(whitelist, class(this)))   
+                dispex('Flipped ''%s'' using Element function.\n', class(this));
+            end
+        end
     end
 end

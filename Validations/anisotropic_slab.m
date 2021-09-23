@@ -47,9 +47,8 @@ Zinte = Zte.z11 - Zte.z12.*Zte.z21 ./ (Zte.z22+z0te);   Zintm = Ztm.z11 - Ztm.z1
     
 %% Simulate in CST.
 mu = repmat(mu, 1, (4-length(mu)));
-filename = sprintf('h:/Git/PhD-Matlab/Validations/%s/eps_%.1f_%.1f_%.1f_mu_%.1f_%.1f_%.1f_th%i', mfilename, er(1), er(2), er(3), mu(1), mu(2), mu(3), th*180/pi);
+filename = sprintf('%s/Validations/%s/eps_%.1f_%.1f_%.1f_mu_%.1f_%.1f_%.1f_th%i', resultdir_matlab, mfilename, er(1), er(2), er(3), mu(1), mu(2), mu(3), th*180/pi);
 touchstonefile = [filename, '.s4p'];
-
 if(~exist(touchstonefile, 'file'))
     project = CST.InitializeUnitCellProject();
     project.StoreParameter('aa_theta', round(th * 180/pi));

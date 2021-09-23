@@ -41,5 +41,12 @@ classdef ADL_Base < Element
             this.ernext = erhostup;
             this.erprev = erhostdown;
         end
+        function flippedadl = Flip(this)
+            % Flip all references to 'next' and 'prev'.
+            flippedadl = ADL_Base(this.p, this.dnext, this.dprev, ...
+                                          this.snext, this.sprev, ...
+                                          this.wnext, this.w, this.wprev, ...
+                                          this.erhostup, this.erhostdown);
+        end
     end
 end

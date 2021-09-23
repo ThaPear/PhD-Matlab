@@ -13,8 +13,11 @@ if(~exist('IsPathSetup', 'file') || ~IsPathSetup())
         'PhD-Matlab',                       ...
         'PhD-Matlab/Elements',              ...
         'PhD-Matlab/Elements/Impedances',   ...
-        'PhD-Matlab/ Reports/WP_2100&2400', ...
+        ...'PhD-Matlab/ Reports/WP_2100&2400', ...
+        ...'PhD-Matlab/ Reports/WP_2400',      ...
+        'PhD-Matlab/ Reports/WP_3100',      ...
         'PhD-Matlab/Tests',                 ...
+        'PhD-Matlab/Tests/finitearray',     ...
         'PhD-Matlab/Validations',           ...
         '');
 end
@@ -30,8 +33,16 @@ clear hParallelpool;
 dbstop if error;
 
 % Disable new-style zoom stuff.
-set(groot,'defaultFigureCreateFcn',@(fig,~)addToolbarExplorationButtons(fig));
-set(groot,'defaultAxesCreateFcn',@(ax,~)set(ax.Toolbar,'Visible','off'));
+set(groot, 'DefaultFigureCreateFcn', @(hFig,~) SetFigureProperties(hFig));
+set(groot, 'DefaultAxesCreateFcn',   @(hAx,~)  SetAxesProperties(hAx));
+
+% Set some figure/plot defaults.
+set(groot, 'DefaultFigureColor', [1 1 1]);
+set(groot, 'DefaultAxesLineWidth', 1);
+set(groot, 'DefaultLineLineWidth', 1.5);
+if ~verLessThan('matlab', '9.10') % 2021a
+    set(groot, 'DefaultAxesXLimitMethod', 'tight');
+end
 
 % Compact formatting in Command Window.
 format compact;
@@ -42,4 +53,15 @@ try % Not worth erroring over.
         closeineditor('SetupPath.m');
     end
 catch exception
+end
+
+function SetFigureProperties(hFig)
+    addToolbarExplorationButtons(hFig);
+end
+
+function SetAxesProperties(hAx)
+    if(isa(hAx, 'matlab.ui.control.UIAxes'))
+        return;
+    end
+    set(hAx.Toolbar,'Visible','off')
 end
