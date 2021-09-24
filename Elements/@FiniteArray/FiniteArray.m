@@ -48,6 +48,7 @@ classdef FiniteArray < handle
     end
     methods(Static)
         kvec = UnfoldKVector(kvec, integrationpath);
+        Dinv = CalculateDinv(f, dy, k0, kx, tlineup_, tlinedown_, z0, wslot, Ny, walled);
     end
 end
 
