@@ -71,6 +71,8 @@ function Iny = CurrentSpectrum(this, fs, excitation, kx, ny)
 
                 Dinv_interpolant = this.Dinv_interpolants{deformedpath+1, D_fi, ny+1, nyp+1};
                 % TODO: If path is deformed this won't work.
+                assert(deformedpath == 0);
+                
                 interpolationkx = real(kx);
                 Dinv = Dinv_interpolant(interpolationkx);
     

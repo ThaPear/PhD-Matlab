@@ -53,7 +53,7 @@ for(ny = 0:Ny-1)
     tc = tic;
     [x, i] = array.Current(f, excitation, ny);
     dt = toc(tc);
-    dispex('Finished %i in %.2fs.\n', ny, dt);
+    dispex('Finished current on slot %i in %.2fs.\n', ny, dt);
     plot(hAx, x, real(i));
     addlegendentry(sprintf('ny = %i', ny));
     plot(hAx, x, imag(i), '--');

@@ -11,8 +11,8 @@ function Dinv = CalculateDinv(f, dy, k0, kx, tlineup_, tlinedown_, z0, wslot, Ny
     
     
     Dinv = zeros(length(kx), Ny, Ny);
-    Ds = zeros(length(kx), Ny);
-    Ddowns = zeros(length(kx), 1);
+%     Ds = zeros(length(kx), Ny);
+%     Ddowns = zeros(length(kx), 1);
 %     Dfss = zeros(length(kx), Ny);
     parfor(kxii = 1:length(kx)) % parfor
         if(kxii == round(length(kx)/2))
@@ -36,6 +36,8 @@ function Dinv = CalculateDinv(f, dy, k0, kx, tlineup_, tlinedown_, z0, wslot, Ny
             D = D + 2.*Dfs;
         end
         
+        % If there's walls, calculate the contribution from the
+        % stratification below.
         if(walled)
             Ddown = 0;
             for(my = -20:20)

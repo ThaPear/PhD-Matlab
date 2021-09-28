@@ -7,7 +7,7 @@ function InitializeZMatrix(this, fs)
     this.InitializeDs(newfs);
     
     dispex('Z matrix: Calculating for %i frequencies, %ix%i elements.\n', length(newfs), this.Nx, this.Ny);
-    tc = tic;
+    tcWaitbar = tic;
 
     Nf = length(newfs);
     Nx_ = this.Nx;
@@ -25,7 +25,7 @@ function InitializeZMatrix(this, fs)
 
     %% Initialize progress bar
     hDataQueue = parallel.pool.DataQueue;
-    hWaitbar = waitbar(0, {'0% Initializing...', '', ''});
+    hWaitbar = waitbar(0, {'0% Initializing...', '', '', ''});
     afterEach(hDataQueue, @updateWaitbar);
 
 %     Ymat_ = zeros((Nx_+2)*Ny_, (Nx_+2)*Ny_, Nf);
@@ -99,7 +99,7 @@ function InitializeZMatrix(this, fs)
             Fp = Fps{ni};
             Dinv_interpolant = Dinv_interpolants{ni};
             
-            Zvec(ni) = -1/(2*pi) .* integral(@(kx) Z_integrand_kx(kx, F, Fp, x, xp, Dinv_interpolant, deformedpath, integrationpath), ...%    , f, Ny_, ny, nyp, dy, wslot), ...
+            Zvec(ni) = -1/(2*pi) .* integral(@(kx) Z_integrand_kx(kx, F, Fp, x, xp, Dinv_interpolant, deformedpath, integrationpath), ...
                                          lim1, lim2, 'Waypoints', integrationpath);
 
             send(hDataQueue, nan); % Update progress bar
@@ -110,14 +110,24 @@ function InitializeZMatrix(this, fs)
     end
     function updateWaitbar(~)
         progress = progress + 1;
-        waitbar(((fi-1)*N+progress)/(Nf*N), hWaitbar, ...
-            {sprintf('%.1f%% Calculating Z Matrix...', ((fi-1)*N+progress)/(Nf*N)*100), ...
+        
+        % Estimate ETA.
+        dt = toc(tcWaitbar);
+        fractiondone = ((fi-1)*N+progress)/(Nf*N);
+        eta = dt / fractiondone * (1-fractiondone);
+        if(isnan(eta) || isinf(eta))
+            eta = 0;
+        end
+        
+        waitbar(fractiondone, hWaitbar, ...
+            {sprintf('%.1f%% Calculating Z Matrix...', fractiondone*100), ...
              sprintf('%i/%i frequencies done.', fi-1, Nf), ...
-             sprintf('%i/%i impedances done.', progress, N)});
+             sprintf('%i/%i impedances done.', progress, N), ...
+             sprintf('%s (~%s remaining)', fancyduration(dt), fancyduration(eta))});
     end
     delete(hWaitbar);
 
-    dt = toc(tc);
+    dt = toc(tcWaitbar);
     dispex('Z matrix: Completed in %s.\n', fancyduration(dt));
 end
 function integrand = Z_integrand_kx(kx, F, Fp, x, xp, Dinv_interpolant, deformedpath, integrationpath)%, f, Ny, ny, nyp, dy, wslot)

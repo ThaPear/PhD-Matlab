@@ -53,7 +53,7 @@ for(ny = 0:Ny-1)
     tc = tic;
     [x, v] = array.Voltage(f, excitation, ny);
     dt = toc(tc);
-    dispex('Finished %i in %.2fs.\n', ny, dt);
+    dispex('Finished voltage on slot %i in %.2fs.\n', ny, dt);
     plot(hAx, x, real(v));
     addlegendentry(sprintf('ny = %i', ny));
     plot(hAx, x, imag(v), '--');

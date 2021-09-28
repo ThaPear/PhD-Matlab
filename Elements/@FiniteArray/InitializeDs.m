@@ -5,7 +5,7 @@ function InitializeDs(this, fs)
     end
 
     dispex('Ds: Calculating for %i frequencies, %i slots, 2 integration paths.\n', length(newfs), this.Ny);
-    tc = tic;
+    tcWaitbar = tic;
     
     Ny_ = this.Ny;
 
@@ -25,7 +25,7 @@ function InitializeDs(this, fs)
 
     %% Initialize progress bar
     hDataQueue = parallel.pool.DataQueue;
-    hWaitbar = waitbar(0, {'0% Initializing...', '', ''});
+    hWaitbar = waitbar(0, {'0% Initializing...', '', '', ''});
     afterEach(hDataQueue, @updateWaitbar);
     progress = -1; send(hDataQueue, nan);
 
@@ -39,13 +39,7 @@ function InitializeDs(this, fs)
 
             %% Determine integration path
             k0 = 2*pi*f / c0;
-            % Go to +-inf
-            delta_ky = 0.01.*k0;
-            lim1_ky = -5.*k0-1j.*delta_ky;
-            lim2_ky = -lim1_ky;
-            % Deform integration path around branch cuts.
-            integrationpath_ky = [(-1-1j).*delta_ky, (1+1j).*delta_ky];
-
+            
             %% Initial sample points
             if(~deformedpath)
                 %% Straight path
@@ -175,22 +169,33 @@ function InitializeDs(this, fs)
         end
         if(~deformedpath)
             progress = 0;
-            dispex('Ds: Completed straight integration path in %s.\n', fancyduration(toc(tc)));
-            halfdt = toc(tc);
+            dispex('Ds: Completed straight integration path in %s.\n', fancyduration(toc(tcWaitbar)));
+            halfdt = toc(tcWaitbar);
         else
-            dispex('Ds: Completed deformed integration path in %s.\n', fancyduration(toc(tc) - halfdt));
+            dispex('Ds: Completed deformed integration path in %s.\n', fancyduration(toc(tcWaitbar) - halfdt));
         end
     end
     
     function updateWaitbar(~)
         progress = progress + 1;
+        
+        % Estimate ETA.
+        dt = toc(tcWaitbar);
+        fractiondone = progress/Nf/2+deformedpath/2;
+        eta = dt / fractiondone * (1-fractiondone);
+        if(isnan(eta) || isinf(eta))
+            eta = 0;
+        end
+        
+        % Update waitbar.
         waitbar(progress/Nf, hWaitbar, ...
-            {sprintf('%.1f%% Precomputing D...', progress/Nf/2*100+deformedpath*50), ...
-             sprintf('%i/%i iterations done.', progress, Nf), ...
-             sprintf('%i/%i integration paths done.', deformedpath, 2)});
+            {sprintf('%.1f%% Precomputing D...', fractiondone*100), ...
+             sprintf('%i/%i frequencies done.', progress, Nf), ...
+             sprintf('%i/%i integration paths done.', deformedpath, 2), ...
+             sprintf('%s (~%s remaining)', fancyduration(dt), fancyduration(eta))});
     end
     delete(hWaitbar);
     
-    dt = toc(tc);
+    dt = toc(tcWaitbar);
     dispex('Ds: Completed in %s.\n', fancyduration(dt));
 end

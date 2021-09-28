@@ -2,17 +2,21 @@ function [x, v] = Voltage(this, fs, excitation, ny)
     this.InitializeDs(fs);
     this.InitializeZMatrix(fs);
 
-    dedge_ = this.dedge;
-    Nx_ = this.Nx;
-    Ny_ = this.Ny;
-    dx = this.unitcell.dx;
-    dy = this.unitcell.dy;
-    wslot_ = this.unitcell.wslot;
-
     Nf = length(fs);
     N = 50;
+    
+    dispex('Voltage Distribution: Calculating %i points for %i frequencies.\n', N, Nf);
+    tcWaitbar = tic;
+    
+    dedge_ = this.dedge;
+    Nx_ = this.Nx;
+%     Ny_ = this.Ny;
+    dx = this.unitcell.dx;
+%     dy = this.unitcell.dy;
+    wslot_ = this.unitcell.wslot;
+
     basispositions = [-dedge_, (0:Nx_-1)*dx, (Nx_-1)*dx+dedge_];
-    x = linspace(min(basispositions), max(basispositions), N);
+%     x = linspace(min(basispositions), max(basispositions), N);
     
     lambda = Constants.c0/fs;
     g = 5/3 * sqrt(wslot_ * lambda);
@@ -20,7 +24,7 @@ function [x, v] = Voltage(this, fs, excitation, ny)
 
     %% Initialize progress bar
     hDataQueue = parallel.pool.DataQueue;
-    hWaitbar = waitbar(0, {'0% Initializing...', '', ''});
+    hWaitbar = waitbar(0, {'0% Initializing...', '', '', ''});
     afterEach(hDataQueue, @updateWaitbar);
     progress = 0;
 
@@ -38,7 +42,7 @@ function [x, v] = Voltage(this, fs, excitation, ny)
         % Deform integration path around branch cuts.
         integrationpath = [(-1-1j).*delta, (1+1j).*delta];
 
-        for(xi = 1:length(x)) % PARFOR
+        for(xi = 1:length(x)) % parfor
             v(xi) = 1/2 .* fastintegral(...
                 @(kx) v_Integrand_kx(this, f, kx, x(xi), excitation, ny), ...
                 lim1, lim2, 'Waypoints', integrationpath);
@@ -46,18 +50,31 @@ function [x, v] = Voltage(this, fs, excitation, ny)
             send(hDataQueue, nan); % Update progress bar
         end
     end
-
+    
     function updateWaitbar(~)
         progress = progress + 1;
-        waitbar(((fi-1)*N+progress)/(Nf*N), hWaitbar, ...
-            {sprintf('%.1f%% Calculating Voltage Distribution...', ((fi-1)*N+progress)/(Nf*N)*100), ...
+        
+        % Estimate ETA.
+        dt = toc(tcWaitbar);
+        fractiondone = ((fi-1)*N+progress)/(Nf*N);
+        eta = dt / fractiondone * (1-fractiondone);
+        if(isnan(eta) || isinf(eta))
+            eta = 0;
+        end
+        
+        waitbar(fractiondone, hWaitbar, ...
+            {sprintf('%.1f%% Calculating Voltage Distribution...', fractiondone*100), ...
              sprintf('%i/%i frequencies done.', fi-1, Nf), ...
-             sprintf('%i/%i positions done.', progress, N)});
+             sprintf('%i/%i positions done.', progress, N), ...
+             sprintf('%s (~%s remaining)', fancyduration(dt), fancyduration(eta))});
     end
     delete(hWaitbar);
+
+    dt = toc(tcWaitbar);
+    dispex('Voltage Distribution: Completed in %s.\n', fancyduration(dt));
 end
 function v = v_Integrand_kx(this, f, kx, x, excitation, ny)
     Vny = this.VoltageSpectrum(f, excitation, kx, ny);
     
-    v =1/(2*pi) .* Vny .* exp(-1j .* kx .* x);
+    v = 1/(2*pi) .* Vny .* exp(-1j .* kx .* x);
 end

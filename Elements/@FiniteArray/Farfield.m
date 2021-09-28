@@ -4,8 +4,8 @@ function ff = Farfield(this, f, excitation, ths, phs, r)
 
     dispex('Calculating Farfield for %i angles.\n', max(length(ths), length(phs)));
     tc = tic;
-
-
+    
+    assert(length(f) == 1);
     N = length(ths);
 
     % If only a single theta or phi is given, repeat it to match the length of the other.
